@@ -848,6 +848,23 @@ void ProtocolGame::parseLogin(const InputMessagePtr& msg) const
         }
     }
 
+    // PokeAlliance's 860/854 login appends account and character metadata
+    // before the first game opcode (normally FullMap). Consume the confirmed
+    // layout so the regular dispatcher resumes at that opcode. Keep this
+    // scoped to the PKA version pair; other 860 servers use the vanilla layout.
+    if (g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854) {
+        msg->getU8(); // PKA login flag
+        msg->getU8(); // PKA login option
+        msg->getU16(); // Rank (0xFFFF means no rank)
+        msg->getString(); // World name
+        msg->getU16(); // Catches
+        msg->getU16(); // Pokedex
+        msg->getU16(); // Arceus level
+        msg->getU64(); // Last login timestamp
+        msg->getU16(); // Achievements
+        msg->getString(); // House
+    }
+
     m_localPlayer->setId(playerId);
     g_game.setServerBeat(serverBeat);
     g_game.setCanReportBugs(canReportBugs);
