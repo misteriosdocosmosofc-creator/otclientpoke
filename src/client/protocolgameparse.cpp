@@ -4078,6 +4078,22 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, const Position 
 
     const bool pkaMapTrace = g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854;
     static uint32_t pkaMapThingTraceCount = 0;
+    static bool pkaMapPrefixCaptured = false;
+    if (pkaMapTrace && !pkaMapPrefixCaptured) {
+        constexpr char hexDigits[] = "0123456789ABCDEF";
+        const auto prefix = msg->peekBytes(48);
+        std::string prefixHex;
+        prefixHex.reserve(prefix.size() * 3);
+        for (const auto byte : prefix) {
+            prefixHex.push_back(hexDigits[byte >> 4]);
+            prefixHex.push_back(hexDigits[byte & 0x0F]);
+            prefixHex.push_back(' ');
+        }
+        g_logger.info("[pka-map-prefix] tile=({}, {}, {}) readPos={} environmentEffect={} bytes={}",
+            position.x, position.y, position.z, msg->getReadPos(),
+            g_game.getFeature(Otc::GameEnvironmentEffect), prefixHex);
+        pkaMapPrefixCaptured = true;
+    }
     bool gotEffect = false;
     for (auto stackPos = 0; stackPos < 256; ++stackPos) {
         if (msg->getUnreadSize() < 2) {
