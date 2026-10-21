@@ -4076,6 +4076,8 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, const Position 
 {
     g_map.cleanTile(position);
 
+    const bool pkaMapTrace = g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854;
+    static uint32_t pkaMapThingTraceCount = 0;
     bool gotEffect = false;
     for (auto stackPos = 0; stackPos < 256; ++stackPos) {
         if (msg->getUnreadSize() < 2) {
@@ -4083,8 +4085,14 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, const Position 
                 position.x, position.y, position.z, stackPos, msg->getUnreadSize(),
                 msg->getMessageSize(), msg->getReadPos(), g_game.getFeature(Otc::GameEnvironmentEffect));
         }
-        if (msg->peekU16() >= 0xff00) {
-            return msg->getU16() & 0xff;
+        const uint16_t nextThingId = msg->peekU16();
+        if (nextThingId >= 0xff00) {
+            const uint16_t skip = msg->getU16() & 0xff;
+            if (pkaMapTrace && pkaMapThingTraceCount < 32) {
+                g_logger.info("[pka-map-step] tile=({}, {}, {}) stack={} readPos={} marker=0x{:04X} skip={}",
+                    position.x, position.y, position.z, stackPos, msg->getReadPos() - 2, nextThingId, skip);
+            }
+            return skip;
         }
 
         if (g_game.getFeature(Otc::GameEnvironmentEffect) && !gotEffect) {
@@ -4097,7 +4105,20 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, const Position 
             g_logger.traceError("ProtocolGame::setTileDescription: too many things, pos={}, stackpos={}", position, stackPos);
         }
 
+        const bool traceThing = pkaMapTrace && pkaMapThingTraceCount < 32;
+        const auto thingReadPos = msg->getReadPos();
+        if (traceThing) {
+            g_logger.info("[pka-map-step] tile=({}, {}, {}) stack={} readPos={} nextThingId=0x{:04X}",
+                position.x, position.y, position.z, stackPos, thingReadPos, nextThingId);
+        }
         const auto& thing = getThing(msg);
+        if (traceThing) {
+            g_logger.info("[pka-map-step] parsed tile=({}, {}, {}) stack={} thingId={} endReadPos={}",
+                position.x, position.y, position.z, stackPos, thing->getId(), msg->getReadPos());
+        }
+        if (pkaMapTrace) {
+            ++pkaMapThingTraceCount;
+        }
         if (thing->isLocalPlayer()) {
             thing->static_self_cast<LocalPlayer>()->resetPreWalk();
         }
