@@ -4106,6 +4106,7 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, const Position 
     const bool pkaMap860Format = g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854;
     const bool pkaMapTrace = pkaMap860Format;
     static uint32_t pkaMapThingTraceCount = 0;
+    static uint16_t pkaMapLateThingTraceCount = 0;
     static bool pkaMapPrefixCaptured = false;
     if (pkaMapTrace && !pkaMapPrefixCaptured) {
         constexpr char hexDigits[] = "0123456789ABCDEF";
@@ -4175,29 +4176,42 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, const Position 
 
         const bool traceThing = pkaMapTrace && pkaMapThingTraceCount < 32;
         const auto thingReadPos = msg->getReadPos();
+        const bool traceLateThing = pkaMapTrace && thingReadPos >= 46000 && pkaMapLateThingTraceCount < 120;
+        if (traceLateThing) {
+            ++pkaMapLateThingTraceCount;
+            g_logger.info("[pka-map-late] begin tile=({}, {}, {}) stack={} readPos={} nextThingId=0x{:04X}",
+                position.x, position.y, position.z, stackPos, thingReadPos, nextThingId);
+        }
         if (traceThing) {
             g_logger.info("[pka-map-step] tile=({}, {}, {}) stack={} readPos={} nextThingId=0x{:04X}",
                 position.x, position.y, position.z, stackPos, thingReadPos, nextThingId);
         }
         const auto& thing = getThing(msg);
         uint8_t pkaItemExtraBytes = 0;
+        uint8_t pkaTextFlag = 0xFF;
+        uint8_t pkaMetadataFlag = 0xFF;
         if (pkaMap860Format && thing->isItem()) {
             // PKA's item stream has a text discriminator followed by a
             // metadata discriminator. The text payload is variable length.
             const auto extraStart = msg->getReadPos();
-            const uint8_t textFlag = msg->getU8();
-            if (textFlag == 1) {
+            pkaTextFlag = msg->getU8();
+            if (pkaTextFlag == 1) {
                 msg->getString();
                 msg->getString();
                 if (thing->getId() == 0x25A0)
                     msg->getString();
                 msg->getU8();
                 msg->getU16();
-            } else if (textFlag == 3) {
+            } else if (pkaTextFlag == 3) {
                 msg->getString();
             }
-            msg->getU8(); // metadata flag
+            pkaMetadataFlag = msg->getU8();
             pkaItemExtraBytes = static_cast<uint8_t>(msg->getReadPos() - extraStart);
+        }
+        if (traceLateThing) {
+            g_logger.info("[pka-map-late] end tile=({}, {}, {}) stack={} thingId={} isItem={} textFlag={} metadataFlag={} itemExtraBytes={} endReadPos={}",
+                position.x, position.y, position.z, stackPos, thing->getId(), thing->isItem(),
+                pkaTextFlag, pkaMetadataFlag, pkaItemExtraBytes, msg->getReadPos());
         }
         if (traceThing) {
             g_logger.info("[pka-map-step] parsed tile=({}, {}, {}) stack={} thingId={} itemExtraBytes={} endReadPos={}",
