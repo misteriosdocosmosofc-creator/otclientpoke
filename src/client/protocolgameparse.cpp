@@ -760,6 +760,24 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                 messageBytes.size(), readPos, unread, fullMessageHex);
         }
 
+        if (opcode == Proto::GameServerFullMap && g_game.getClientVersion() == 860) {
+            constexpr char hexDigits[] = "0123456789ABCDEF";
+            const auto messageBytes = msg->getBuffer();
+            const auto readPosOffset = static_cast<size_t>(readPos);
+            const auto contextStart = readPosOffset > 128 ? readPosOffset - 128 : 0;
+            const auto contextEnd = std::min(messageBytes.size(), readPosOffset + 128);
+            std::string contextHex;
+            contextHex.reserve((contextEnd - contextStart) * 3);
+            for (auto i = contextStart; i < contextEnd; ++i) {
+                const auto byte = static_cast<uint8_t>(messageBytes[i]);
+                contextHex.push_back(hexDigits[byte >> 4]);
+                contextHex.push_back(hexDigits[byte & 0x0F]);
+                contextHex.push_back(' ');
+            }
+            g_logger.error("[pka-fullmap-failure-context] messageBytes={} readPos={} contextStart={} contextEnd={} bytes={}",
+                messageBytes.size(), readPos, contextStart, contextEnd, contextHex);
+        }
+
         std::stringstream hexDump;
         for (const auto byte : remainingBytes) {
             hexDump << fmt::format("{:02X} ", byte);
