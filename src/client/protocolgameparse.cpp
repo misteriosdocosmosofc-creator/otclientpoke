@@ -70,9 +70,18 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
             }
 
             const auto opcodePos = msg->getReadPos();
-            opcode = g_game.getFeature(Otc::GameOpcodeU16) ? msg->getU16() : msg->getU8();
+            const auto opcodeBodyOffset = msg->getReadSize();
+            const bool opcodeU16 = g_game.getFeature(Otc::GameOpcodeU16);
+            const auto opcodeWidth = opcodeU16 ? 2 : 1;
+            std::string opcodeRaw;
+            if (pkaProtocolDebug) {
+                const auto opcodeRawBytes = msg->peekBytes(opcodeWidth);
+                for (const auto byte : opcodeRawBytes)
+                    fmt::format_to(std::back_inserter(opcodeRaw), "{:02X} ", byte);
+            }
+            opcode = opcodeU16 ? msg->getU16() : msg->getU8();
             if (pkaProtocolDebug && opcodeTrace.size() < 256) {
-                opcodeTrace += fmt::format(" @{}=0x{:04X}", opcodePos, opcode);
+                opcodeTrace += fmt::format(" @{}(body+{})[{}]=0x{:04X}", opcodePos, opcodeBodyOffset, opcodeRaw, opcode);
             }
             AutoStat s(STATS_PACKETS, fmt::format("{} (0x{:02X})", opcode, opcode));
 
@@ -88,8 +97,8 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
             const int readPos = msg->getReadPos();
             if (callLuaField<bool>("onOpcode", opcode, msg)) {
                 if (pkaProtocolDebug) {
-                    g_logger.info("[pka-opcode-step] messageBytes={} opcode=0x{:04X} start={} end={} consumed={} unread={} handler=lua",
-                        msg->getMessageSize(), opcode, opcodePos, msg->getReadPos(), msg->getReadPos() - opcodePos, msg->getUnreadSize());
+                    g_logger.info("[pka-opcode-step] messageBytes={} opcode=0x{:04X} raw={} opcodeU16={} bodyOffset={} start={} end={} consumed={} unread={} handler=lua",
+                        msg->getMessageSize(), opcode, opcodeRaw, opcodeU16, opcodeBodyOffset, opcodePos, msg->getReadPos(), msg->getReadPos() - opcodePos, msg->getUnreadSize());
                 }
                 continue;
             }
@@ -732,8 +741,8 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                 }
             }
             if (pkaProtocolDebug) {
-                g_logger.info("[pka-opcode-step] messageBytes={} opcode=0x{:04X} start={} end={} consumed={} unread={} handler=native",
-                    msg->getMessageSize(), opcode, opcodePos, msg->getReadPos(), msg->getReadPos() - opcodePos, msg->getUnreadSize());
+                g_logger.info("[pka-opcode-step] messageBytes={} opcode=0x{:04X} raw={} opcodeU16={} bodyOffset={} start={} end={} consumed={} unread={} handler=native",
+                    msg->getMessageSize(), opcode, opcodeRaw, opcodeU16, opcodeBodyOffset, opcodePos, msg->getReadPos(), msg->getReadPos() - opcodePos, msg->getUnreadSize());
             }
             prevOpcode = opcode;
         }
