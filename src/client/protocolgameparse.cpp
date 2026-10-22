@@ -4173,11 +4173,22 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, const Position 
         const auto& thing = getThing(msg);
         uint8_t pkaItemExtraBytes = 0;
         if (pkaMap860Format && thing->isItem()) {
-            // The PKA 860/854 PC item reader consumes two per-item flag bytes
-            // after the normal item payload. They are present even when zero.
-            msg->getU8();
-            msg->getU8();
-            pkaItemExtraBytes = 2;
+            // PKA's item stream has a text discriminator followed by a
+            // metadata discriminator. The text payload is variable length.
+            const auto extraStart = msg->getReadPos();
+            const uint8_t textFlag = msg->getU8();
+            if (textFlag == 1) {
+                msg->getString();
+                msg->getString();
+                if (thing->getId() == 0x25A0)
+                    msg->getString();
+                msg->getU8();
+                msg->getU16();
+            } else if (textFlag == 3) {
+                msg->getString();
+            }
+            msg->getU8(); // metadata flag
+            pkaItemExtraBytes = static_cast<uint8_t>(msg->getReadPos() - extraStart);
         }
         if (traceThing) {
             g_logger.info("[pka-map-step] parsed tile=({}, {}, {}) stack={} thingId={} itemExtraBytes={} endReadPos={}",
@@ -4577,7 +4588,9 @@ ItemPtr ProtocolGame::getItem(const InputMessagePtr& msg, int id)
     }
 
     if (item->isStackable() || item->isFluidContainer() || item->isSplash() || item->isChargeable()) {
-        item->setCountOrSubType(g_game.getFeature(Otc::GameCountU16) ? msg->getU16() : msg->getU8());
+        const bool pkaMap860Format = g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854;
+        const bool useU16Count = g_game.getFeature(Otc::GameCountU16) || (pkaMap860Format && item->isStackable());
+        item->setCountOrSubType(useU16Count ? msg->getU16() : msg->getU8());
     }
 
     if (g_game.getFeature(Otc::GameItemAnimationPhase)) {
