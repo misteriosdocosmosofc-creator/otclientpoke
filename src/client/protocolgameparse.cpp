@@ -4409,92 +4409,151 @@ CreaturePtr ProtocolGame::getCreature(const InputMessagePtr& msg, int type) cons
         const auto& outfit = getOutfit(msg);
 
         Light light;
-        light.intensity = msg->getU8();
-        light.color = msg->getU8();
-
-        const uint16_t speed = msg->getU16();
-
-        if (g_game.getClientVersion() >= 1281) {
-            addCreatureIcon(msg, creature->getId());
-        }
-
-        const uint8_t skull = msg->getU8();
-        const uint8_t shield = msg->getU8();
-
-        // emblem is sent only when the creature is not known
         uint8_t emblem = 0;
         uint8_t creatureType = 0;
         uint8_t icon = 0;
         bool unpass = true;
-
-        if (g_game.getFeature(Otc::GameCreatureEmblems) && !known) {
-            emblem = msg->getU8();
-        }
-
-        if (g_game.getFeature(Otc::GameThingMarks)) {
-            creatureType = msg->getU8();
-        }
-
         uint32_t masterId = 0;
-        if (g_game.getClientVersion() >= 1281) {
-            if (creatureType == Proto::CreatureTypeSummonOwn) {
-                masterId = msg->getU32();
-                if (m_localPlayer->getId() != masterId) {
-                    creatureType = Proto::CreatureTypeSummonOther;
-                }
-            } else if (creatureType == Proto::CreatureTypePlayer) {
-                uint8_t vocationId = msg->getU8();
-                creature->setVocation(vocationId);
-            }
-        }
-
-        if (g_game.getFeature(Otc::GameCreatureIcons)) {
-            icon = msg->getU8();
-        }
-
-        if (g_game.getFeature(Otc::GameThingMarks)) {
-            const uint8_t mark = msg->getU8(); // mark
-
-            if (g_game.getClientVersion() < 1281) {
-                msg->getU16(); // helpers
-            }
-
-            if (creature) {
-                if (mark == 0xff) {
-                    creature->hideStaticSquare();
-                } else {
-                    creature->showStaticSquare(Color::from8bit(mark));
-                }
-            }
-        }
-
-        if (g_game.getClientVersion() >= 1281) {
-            msg->getU8(); // inspection type
-        }
-
-        if (g_game.getClientVersion() >= 854) {
-            unpass = static_cast<bool>(msg->getU8());
-        }
-
-        if (g_game.getFeature(Otc::GameCreaturePaperdoll)) {
-            uint8_t size = msg->getU8();
-            for (uint8_t i = 0; i < size; ++i) {
-                const auto& paperdoll = getPaperdoll(msg);
-                if (creature)
-                    creature->attachPaperdoll(paperdoll);
-            }
-        }
-
         std::string shader;
-        if (g_game.getFeature(Otc::GameCreatureShader)) {
-            shader = msg->getString();
-        }
-
         std::vector<uint16_t> attachedEffectList;
-        if (g_game.getFeature(Otc::GameCreatureAttachedEffect)) {
-            const uint8_t listSize = msg->getU8();
-            for (auto i = -1; ++i < listSize;) {
-                attachedEffectList.push_back(msg->getU16());
+        uint16_t speed = 0;
+        uint8_t skull = 0;
+        uint8_t shield = 0;
+
+        const bool pkaMap860Format = g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854;
+        if (pkaMap860Format) {
+            if (outfit.isCreature()) {
+                // The PC reader consumes this pair for every non-zero looktype.
+                msg->getU64();
+                msg->getU64();
+                // The observed 860/854 PKA profile has outfit extension bit 42 enabled.
+                msg->getString();
+            }
+
+            speed = msg->getU16();
+            skull = msg->getU8();
+            shield = msg->getU8();
+            if (type == Proto::UnknownCreature)
+                emblem = msg->getU8();
+
+            const uint8_t subtype = msg->getU8();
+            unpass = msg->getU8() == 0;
+            if (subtype == 0)
+                msg->getString();
+
+            msg->getU8();
+            msg->getU16();
+            msg->getString();
+            msg->getU8();
+            msg->getU8();
+            msg->getU8();
+
+            const uint8_t attributeCount = msg->getU8();
+            for (uint16_t i = 0; i < attributeCount; ++i) {
+                msg->getString();
+                msg->getU16();
+                msg->getU16();
+            }
+
+            if (subtype != 1) {
+                if (subtype == 4) {
+                    // The PC reader has a subtype-4-only prelude here, but its
+                    // conditional field meanings/count are not yet validated
+                    // against a PKA 860/854 capture. Keep this isolated from
+                    // the confirmed subtype-2 path below.
+                    msg->getU8();
+                    msg->getU8();
+                    msg->getU8();
+                    msg->getU8();
+                    msg->getU8();
+                    msg->getU8();
+                    const bool hasExtra = msg->getU8() != 0;
+                    if (hasExtra)
+                        msg->getU8();
+                    msg->getU8();
+                    msg->getU8();
+                }
+
+                const uint8_t recordCount = msg->getU8();
+                for (uint16_t i = 0; i < recordCount; ++i) {
+                    msg->getU16();
+                    msg->getU64();
+                    msg->getU16();
+                    msg->getU8();
+                    msg->getU8();
+                    msg->getU8();
+                }
+                msg->getString();
+                if (subtype == 2)
+                    msg->getU8();
+            }
+        } else {
+            light.intensity = msg->getU8();
+            light.color = msg->getU8();
+            speed = msg->getU16();
+
+            if (g_game.getClientVersion() >= 1281)
+                addCreatureIcon(msg, creature->getId());
+
+            skull = msg->getU8();
+            shield = msg->getU8();
+
+            // emblem is sent only when the creature is not known
+            if (g_game.getFeature(Otc::GameCreatureEmblems) && !known)
+                emblem = msg->getU8();
+
+            if (g_game.getFeature(Otc::GameThingMarks))
+                creatureType = msg->getU8();
+
+            if (g_game.getClientVersion() >= 1281) {
+                if (creatureType == Proto::CreatureTypeSummonOwn) {
+                    masterId = msg->getU32();
+                    if (m_localPlayer->getId() != masterId)
+                        creatureType = Proto::CreatureTypeSummonOther;
+                } else if (creatureType == Proto::CreatureTypePlayer) {
+                    const uint8_t vocationId = msg->getU8();
+                    creature->setVocation(vocationId);
+                }
+            }
+
+            if (g_game.getFeature(Otc::GameCreatureIcons))
+                icon = msg->getU8();
+
+            if (g_game.getFeature(Otc::GameThingMarks)) {
+                const uint8_t mark = msg->getU8(); // mark
+                if (g_game.getClientVersion() < 1281)
+                    msg->getU16(); // helpers
+
+                if (creature) {
+                    if (mark == 0xff)
+                        creature->hideStaticSquare();
+                    else
+                        creature->showStaticSquare(Color::from8bit(mark));
+                }
+            }
+
+            if (g_game.getClientVersion() >= 1281)
+                msg->getU8(); // inspection type
+
+            if (g_game.getClientVersion() >= 854)
+                unpass = static_cast<bool>(msg->getU8());
+
+            if (g_game.getFeature(Otc::GameCreaturePaperdoll)) {
+                const uint8_t size = msg->getU8();
+                for (uint8_t i = 0; i < size; ++i) {
+                    const auto& paperdoll = getPaperdoll(msg);
+                    if (creature)
+                        creature->attachPaperdoll(paperdoll);
+                }
+            }
+
+            if (g_game.getFeature(Otc::GameCreatureShader))
+                shader = msg->getString();
+
+            if (g_game.getFeature(Otc::GameCreatureAttachedEffect)) {
+                const uint8_t listSize = msg->getU8();
+                for (uint8_t i = 0; i < listSize; ++i)
+                    attachedEffectList.push_back(msg->getU16());
             }
         }
 
