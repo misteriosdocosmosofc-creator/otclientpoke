@@ -4341,6 +4341,14 @@ ThingPtr ProtocolGame::getMappedThing(const InputMessagePtr& msg) const
 
 CreaturePtr ProtocolGame::getCreature(const InputMessagePtr& msg, int type) const
 {
+    static uint16_t pkaCreatureTraceCount = 0;
+    const int pkaCreatureStart = msg->getReadPos();
+    const bool tracePkaCreature = g_game.getClientVersion() == 860 &&
+        g_game.getProtocolVersion() == 854 && pkaCreatureStart >= 40000 && pkaCreatureTraceCount < 120;
+    if (tracePkaCreature) {
+        ++pkaCreatureTraceCount;
+        g_logger.info("[pka-creature-late] begin type=0x{:04X} readPos={}", type, pkaCreatureStart);
+    }
     if (type == 0) {
         type = msg->getU16();
     }
@@ -4444,6 +4452,9 @@ CreaturePtr ProtocolGame::getCreature(const InputMessagePtr& msg, int type) cons
         uint8_t shield = 0;
 
         const bool pkaMap860Format = g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854;
+        uint8_t pkaSubtype = 0xFF;
+        uint8_t pkaAttributeCount = 0;
+        uint8_t pkaRecordCount = 0;
         if (pkaMap860Format) {
             if (outfit.isCreature()) {
                 // The PC reader consumes this pair for every non-zero looktype.
@@ -4459,9 +4470,9 @@ CreaturePtr ProtocolGame::getCreature(const InputMessagePtr& msg, int type) cons
             if (type == Proto::UnknownCreature)
                 emblem = msg->getU8();
 
-            const uint8_t subtype = msg->getU8();
+            pkaSubtype = msg->getU8();
             unpass = msg->getU8() == 0;
-            if (subtype == 0)
+            if (pkaSubtype == 0)
                 msg->getString();
 
             msg->getU8();
@@ -4471,15 +4482,15 @@ CreaturePtr ProtocolGame::getCreature(const InputMessagePtr& msg, int type) cons
             msg->getU8();
             msg->getU8();
 
-            const uint8_t attributeCount = msg->getU8();
-            for (uint16_t i = 0; i < attributeCount; ++i) {
+            pkaAttributeCount = msg->getU8();
+            for (uint16_t i = 0; i < pkaAttributeCount; ++i) {
                 msg->getString();
                 msg->getU16();
                 msg->getU16();
             }
 
-            if (subtype != 1) {
-                if (subtype == 4) {
+            if (pkaSubtype != 1) {
+                if (pkaSubtype == 4) {
                     // The PC reader has a subtype-4-only prelude here, but its
                     // conditional field meanings/count are not yet validated
                     // against a PKA 860/854 capture. Keep this isolated from
@@ -4497,8 +4508,8 @@ CreaturePtr ProtocolGame::getCreature(const InputMessagePtr& msg, int type) cons
                     msg->getU8();
                 }
 
-                const uint8_t recordCount = msg->getU8();
-                for (uint16_t i = 0; i < recordCount; ++i) {
+                pkaRecordCount = msg->getU8();
+                for (uint16_t i = 0; i < pkaRecordCount; ++i) {
                     msg->getU16();
                     msg->getU64();
                     msg->getU16();
@@ -4507,8 +4518,12 @@ CreaturePtr ProtocolGame::getCreature(const InputMessagePtr& msg, int type) cons
                     msg->getU8();
                 }
                 msg->getString();
-                if (subtype == 2)
+                if (pkaSubtype == 2)
                     msg->getU8();
+            }
+            if (tracePkaCreature) {
+                g_logger.info("[pka-creature-late] end type=0x{:04X} subtype={} outfitCreature={} attributeCount={} recordCount={} endReadPos={}",
+                    type, pkaSubtype, outfit.isCreature(), pkaAttributeCount, pkaRecordCount, msg->getReadPos());
             }
         } else {
             light.intensity = msg->getU8();
