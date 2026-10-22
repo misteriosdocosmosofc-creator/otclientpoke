@@ -51,9 +51,8 @@
 void ProtocolGame::parseMessage(const InputMessagePtr& msg)
 {
     const bool pkaProtocolDebug = g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854;
-    // Full payload hex logging runs on the game thread and can add avoidable
-    // work while the PKA bootstrap is arriving. Existing captures already
-    // preserve these bodies; keep new live captures metadata-only by default.
+    // Capture specific payloads only when enabled; FullMap is captured below
+    // while diagnosing PKA tile-stream alignment.
     constexpr bool pkaPayloadCapture = false;
     int opcode = -1;
     int prevOpcode = -1;
@@ -228,6 +227,25 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                     parseClientCheck(msg);
                     break;
                 case Proto::GameServerFullMap:
+                    if (pkaProtocolDebug) {
+                        const auto payload = msg->peekBytes(msg->getUnreadSize());
+                        // Split the body into log entries small enough for Android logcat.
+                        constexpr size_t payloadChunkSize = 384;
+                        constexpr char hexDigits[] = "0123456789ABCDEF";
+                        const auto chunkCount = (payload.size() + payloadChunkSize - 1) / payloadChunkSize;
+                        for (size_t chunkIndex = 0; chunkIndex < chunkCount; ++chunkIndex) {
+                            const auto chunkStart = chunkIndex * payloadChunkSize;
+                            const auto chunkEnd = std::min(payload.size(), chunkStart + payloadChunkSize);
+                            std::string hexPayload;
+                            hexPayload.reserve((chunkEnd - chunkStart) * 2);
+                            for (auto i = chunkStart; i < chunkEnd; ++i) {
+                                hexPayload.push_back(hexDigits[payload[i] >> 4]);
+                                hexPayload.push_back(hexDigits[payload[i] & 0x0F]);
+                            }
+                            g_logger.info("[pka-fullmap-data] messageBytes={} chunk={}/{} bodyOffset={} hex={}",
+                                msg->getMessageSize(), chunkIndex + 1, chunkCount, chunkStart, hexPayload);
+                        }
+                    }
                     parseMapDescription(msg);
                     break;
                 case Proto::GameServerMapTopRow:
