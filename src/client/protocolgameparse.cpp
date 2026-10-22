@@ -4153,9 +4153,17 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, const Position 
                 position.x, position.y, position.z, stackPos, thingReadPos, nextThingId);
         }
         const auto& thing = getThing(msg);
+        uint8_t pkaItemExtraBytes = 0;
+        if (pkaMap860Format && thing->isItem()) {
+            // The PKA 860/854 PC item reader consumes two per-item flag bytes
+            // after the normal item payload. They are present even when zero.
+            msg->getU8();
+            msg->getU8();
+            pkaItemExtraBytes = 2;
+        }
         if (traceThing) {
-            g_logger.info("[pka-map-step] parsed tile=({}, {}, {}) stack={} thingId={} endReadPos={}",
-                position.x, position.y, position.z, stackPos, thing->getId(), msg->getReadPos());
+            g_logger.info("[pka-map-step] parsed tile=({}, {}, {}) stack={} thingId={} itemExtraBytes={} endReadPos={}",
+                position.x, position.y, position.z, stackPos, thing->getId(), pkaItemExtraBytes, msg->getReadPos());
         }
         if (pkaMapTrace) {
             ++pkaMapThingTraceCount;
