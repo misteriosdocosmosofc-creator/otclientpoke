@@ -26,7 +26,8 @@
 #include "staticdata.h"
 
  // @bindclass
-#pragma pack(push,1) // disable memory alignment
+// Runtime objects need natural alignment: Position references can otherwise
+// reach ARM VFP loads at unaligned addresses when a creature starts walking.
 class Thing : public AttachableObject
 {
 public:
@@ -252,4 +253,4 @@ private:
     friend class Client;
     friend class Tile;
 };
-#pragma pack(pop)
+static_assert(alignof(Thing) >= alignof(Position), "Thing must preserve Position alignment");

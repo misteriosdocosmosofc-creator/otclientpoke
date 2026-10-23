@@ -19,6 +19,14 @@ usa uma ABI (`armeabi-v7a`); LuaJIT e data.zip so sao refeitos quando necessario
 Debug desativa LTO e isola `protocolgameparse.cpp` do Unity Build, mantendo PCH.
 Release mantem suas configuracoes de otimizacao.
 
+Objetos de runtime `Thing`/`Item` devem manter alinhamento natural. No ARMv7,
+`#pragma pack(1)` em `Thing` causou SIGBUS/BUS_ADRALN no primeiro movimento:
+`Position::isInRange` copiou a posicao por `vldr` a partir de endereco desalinhado.
+Para crashes nativos, preservar logcat crash e CAM antes de reabrir; simbolizar
+com o ELF do mesmo APK/build. Frames repetidos no unwinder isoladamente nao
+comprovam recursao. Reproduzir a CAM na engine para exercitar o estado/movimento,
+alem do leitor offline de bytes, antes da proxima entrada real.
+
 ## Assinatura consistente
 
 O Codespace usa `/workspaces/.otc-android/signing/debug.keystore`. A mesma chave esta

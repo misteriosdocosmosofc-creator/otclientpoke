@@ -69,7 +69,7 @@ enum ItemAttr : uint8_t
 };
 
 // @bindclass
-#pragma pack(push,1) // disable memory alignment
+// Preserve the natural alignment of Thing and the STL members below.
 class Item final : public Thing
 {
 public:
@@ -196,4 +196,4 @@ private:
 #endif
 };
 
-#pragma pack(pop)
+static_assert(alignof(Item) >= alignof(Thing), "Item must preserve Thing alignment");
