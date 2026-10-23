@@ -27,7 +27,7 @@ struct Reader {
 
 int main(int argc, char** argv) {
     if (argc < 3) {
-        std::cerr << "Usage: pka-replay PAYLOAD.bin ITEM_FLAGS.txt [WIDTH HEIGHT] [TRACE.jsonl]\nPayload starts with position U16,U16,U8.\n";
+        std::cerr << "Usage: pka-replay PAYLOAD.bin ITEM_FLAGS.txt [WIDTH HEIGHT] [TRACE.jsonl] [--tail|--packet]\nPayload starts with position U16,U16,U8.\n";
         return 2;
     }
     Reader msg;
@@ -40,6 +40,7 @@ int main(int argc, char** argv) {
     while (flags >> id >> value) properties.at(id) = value;
     const int width = argc >= 5 ? std::stoi(argv[3]) : PkaProtocol::MapWidth;
     const int height = argc >= 5 ? std::stoi(argv[4]) : PkaProtocol::MapHeight;
+    const bool packetMode = argc >= 7 && std::string(argv[6]) == "--packet";
     std::ofstream trace;
     if (argc >= 6) trace.open(argv[5]);
     auto span = [&](const char* kind, size_t start, unsigned object) {
@@ -56,6 +57,7 @@ int main(int argc, char** argv) {
     size_t tiles = 0, skips = 0, items = 0, creatures = 0;
     int x = 0, y = 0, z = 0, stack = 0;
     try {
+        if (!packetMode) {
         const auto cx = msg.getU16(); const auto cy = msg.getU16(); const auto cz = msg.getU8();
         const int first = cz <= 7 ? 7 : cz - 3;
         const int last = cz <= 7 ? 0 : std::min<int>(15, cz + 3);
@@ -106,7 +108,8 @@ int main(int argc, char** argv) {
             }
         }
         std::cout << "{\"status\":\"ok\",\"width\":" << width << ",\"height\":" << height << ",\"end\":" << msg.pos << ",\"remaining\":" << msg.data.size() - msg.pos << ",\"tiles\":" << tiles << ",\"skipped\":" << skips << ",\"items\":" << items << ",\"creatures\":" << creatures << "}\n";
-        if (argc >= 7 && std::string(argv[6]) == "--tail") {
+        }
+        if (packetMode || (argc >= 7 && std::string(argv[6]) == "--tail")) {
             while (msg.pos < msg.data.size()) {
                 const auto start = msg.pos;
                 const auto opcode = msg.getU16();
@@ -158,7 +161,7 @@ int main(int argc, char** argv) {
                         if (mode != 0x18) throw std::runtime_error("unmapped text message mode " + std::to_string(mode));
                         msg.getString(); break;
                     }
-                    case 0x0053: case 0x05e7: case 0x05ec: case 0x05ed: case 0x05ee: case 0x05ef: case 0x05f0:
+                    case 0x00ba: case 0x00c1: case 0x00c5: case 0x0105: case 0x0108: case 0x005d: case 0x005e: case 0x0053: case 0x05f7: case 0x0616: case 0x05e7: case 0x05ec: case 0x05ed: case 0x05ee: case 0x05ef: case 0x05f0:
                     case 0x0606: case 0x060a: case 0x060e: case 0x0631: case 0x0632: case 0x0633:
                         if (!PkaProtocol::readAuxiliary(msg, opcode)) throw std::runtime_error("unsupported auxiliary form");
                         break;

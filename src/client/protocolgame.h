@@ -25,7 +25,7 @@
 #include "declarations.h"
 #include "framework/net/protocol.h"
 #include "staticdata.h"
-#include "pkaprotocol.h"
+#include "pkaprofile.h"
 
 class ProtocolGame final : public Protocol
 {

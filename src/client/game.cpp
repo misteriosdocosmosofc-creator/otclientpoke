@@ -30,7 +30,7 @@
 #include "map.h"
 #include "protocolgame.h"
 #include "protocolcodes.h"
-#include "pkaprotocol.h"
+#include "pkaprofile.h"
 #include "framework/core/configmanager.h"
 #include "framework/core/resourcemanager.h"
 #include "thingtype.h"

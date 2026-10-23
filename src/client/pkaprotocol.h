@@ -1,19 +1,11 @@
 #pragma once
 
-#include <cstdint>
+#include "pkaprofile.h"
 #include <vector>
 
 // Wire readers shared by ProtocolGame and the small offline replay executable.
 // Unknown fields keep their measured types instead of guessing their meaning.
 namespace PkaProtocol {
-inline constexpr int MapLeft = 15;
-inline constexpr int MapTop = 9;
-inline constexpr int MapRight = 16;
-inline constexpr int MapBottom = 10;
-inline constexpr int MapWidth = MapLeft + MapRight + 1;
-inline constexpr int MapHeight = MapTop + MapBottom + 1;
-inline constexpr int UndergroundRange = 3;
-
 template<class Reader>
 void readLoginExtension(Reader& msg)
 {
@@ -28,8 +20,6 @@ void readOutfitExtension(Reader& msg)
     msg.getU64(); msg.getU64();
     msg.getString(); // Outfit extension bit 42 is active in the captured PKA profile.
 }
-
-struct ItemAttributes { uint8_t text = 0; uint8_t metadata = 0; };
 
 struct PlayerStats {
     uint16_t health, maxHealth;
@@ -75,7 +65,105 @@ void readToggleWindow(Reader& msg)
 template<class Reader>
 bool readAuxiliary(Reader& msg, uint16_t opcode)
 {
-    if (opcode == 0x0053) {
+    if (opcode == 0x00ba) {
+        // PC FUN_14072ff20: PKA task catalog, unrelated to vanilla TaskHuntingBasicData.
+        msg.getU8();
+        const auto count = msg.getU16();
+        for (unsigned i = 0; i < count; ++i) {
+            msg.getU16(); msg.getString(); msg.getString();
+            msg.getU8(); msg.getU8(); msg.getU16();
+            const auto children = msg.getU16();
+            for (unsigned child = 0; child < children; ++child) {
+                msg.getU16(); msg.getU32(); msg.getString(); msg.getU8(); msg.getU32();
+            }
+        }
+    } else if (opcode == 0x00c1) {
+        // PC FUN_14074fa10: optional list of task/status records.
+        unsigned count = 1;
+        if (msg.getU8() == 0) count = msg.getU16();
+        for (unsigned i = 0; i < count; ++i) {
+            msg.getString(); msg.getU16(); msg.getU16();
+            for (unsigned field = 0; field < 20; ++field) msg.getU32();
+        }
+    } else if (opcode == 0x0108) {
+        const auto mode = msg.getU8();
+        if (mode == 1) {
+            const auto count = msg.getU16();
+            for (unsigned i = 0; i < count; ++i) msg.getString();
+        } else if (mode == 2) {
+            const auto count = msg.getU8();
+            for (unsigned i = 0; i < count; ++i) {
+                if (msg.getU8() == 2) {
+                    msg.getString(); msg.getU8(); msg.getU8(); msg.getU32(); msg.getU32();
+                }
+            }
+        } else return false;
+    } else if (opcode == 0x00c5) {
+        const auto mode = msg.getU8();
+        if (mode == 1) {
+            const auto count = msg.getU16();
+            for (unsigned i = 0; i < count; ++i) {
+                msg.getU32(); msg.getU8(); msg.getU32(); msg.getU32(); msg.getU16(); msg.getU8();
+                msg.getU8(); msg.getU32(); msg.getU8(); msg.getU32(); msg.getU8();
+            }
+        } else if (mode == 2) {
+            const auto count = msg.getU8();
+            for (unsigned i = 0; i < count; ++i) { msg.getU8(); msg.getU32(); msg.getU8(); msg.getU32(); msg.getU32(); msg.getU16(); }
+        } else if (mode == 3) {
+            const auto count = msg.getU8();
+            for (unsigned i = 0; i < count; ++i) { msg.getU8(); msg.getU64(); }
+        } else if (mode == 4) {
+            msg.getU32(); msg.getU8(); msg.getU32(); msg.getU32(); msg.getU16(); msg.getU8(); msg.getU64(); msg.getU8(); msg.getU64();
+        } else if (mode == 5) {
+            msg.getU8();
+        } else if (mode == 6) {
+            const auto count = msg.getU16();
+            for (unsigned i = 0; i < count; ++i) { msg.getU16(); msg.getU16(); msg.getU32(); }
+        } else if (mode == 7) {
+            msg.getString();
+        } else return false;
+    } else if (opcode == 0x005d) {
+        msg.getU8();
+        const auto count = msg.getU16();
+        for (unsigned i = 0; i < count; ++i) {
+            msg.getString(); msg.getU8(); msg.getU16(); msg.getU8(); msg.getU32();
+            msg.getString();
+            const auto children = msg.getU8();
+            for (unsigned child = 0; child < children; ++child) { msg.getString(); msg.getU16(); msg.getU16(); }
+        }
+    } else if (opcode == 0x0105) {
+        const auto mode = msg.getU8();
+        if (mode == 1) {
+            msg.getU8();
+        } else if (mode == 2) {
+            msg.getU8(); msg.getU32();
+            auto count = msg.getU8();
+            for (unsigned i = 0; i < count; ++i) msg.getString();
+            count = msg.getU8();
+            for (unsigned i = 0; i < count; ++i) msg.getString();
+        } else if (mode == 4) {
+            const auto count = msg.getU8();
+            for (unsigned i = 0; i < count; ++i) msg.getString();
+        } else if (mode != 3) return false;
+    } else if (opcode == 0x0616) {
+        const auto count = msg.getU16();
+        for (unsigned i = 0; i < count; ++i) {
+            msg.getU32(); msg.getString(); msg.getU16(); msg.getU16(); msg.getU8();
+        }
+    } else if (opcode == 0x05f7) {
+        const auto mode = msg.getU8();
+        if (mode == 1) {
+            msg.getString();
+        } else if (mode == 2) {
+            msg.getString(); msg.getU16(); msg.getU16();
+        } else if (mode == 3) {
+            const auto count = msg.getU8();
+            for (unsigned i = 0; i < count; ++i) { msg.getU8(); msg.getString(); msg.getU64(); msg.getU32(); }
+        } else return false;
+    } else if (opcode == 0x005e) {
+        const auto count = msg.getU8();
+        for (unsigned i = 0; i < count; ++i) { msg.getString(); msg.getU16(); msg.getU64(); }
+    } else if (opcode == 0x0053) {
         const auto mode = msg.getU8();
         const unsigned count = mode == 1 ? msg.getU16() : 1;
         for (unsigned i = 0; i < count; ++i) { msg.getU16(); msg.getU32(); }

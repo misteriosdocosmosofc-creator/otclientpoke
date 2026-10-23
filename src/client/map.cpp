@@ -26,7 +26,7 @@
 #include "client/const.h"
 #include "creatures.h"
 #include "game.h"
-#include "pkaprotocol.h"
+#include "pkaprofile.h"
 #include "gameconfig.h"
 #include "item.h"
 #include "localplayer.h"
