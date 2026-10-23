@@ -7,4 +7,4 @@ g_game.setPokeAllianceProtocol(true)
 g_game.enableFeature(GameOpcodeU16)
 g_game.playRecord('pka-bootstrap.cam')
 if EnterGame then EnterGame.hide() end
-if CharacterList then CharacterList.hide() end
+if CharacterList and CharacterList.isVisible() then CharacterList.hide() end

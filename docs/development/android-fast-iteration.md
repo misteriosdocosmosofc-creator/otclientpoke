@@ -64,7 +64,7 @@ mensagens posteriores conhecidas e para no primeiro opcode ainda nao mapeado.
 No Windows, apos instalar um binario compativel:
 
 ```powershell
-./tools/android-dev/sync-android-modules.ps1 -Diagnostics records -StartApp
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/android-dev/sync-android-modules.ps1 -Diagnostics records -StartApp
 ```
 
 O script para o aplicativo, copia somente os modulos permitidos para
@@ -140,3 +140,28 @@ conforme o [manual oficial do ccache](https://ccache.dev/manual/4.9.1.html#_prec
 A permissao de macros de tempo e exclusiva desse ciclo de desenvolvimento:
 nao usar __DATE__/__TIME__ como identidade confiavel do binario; registrar commit
 junto ao hash SHA-256 do APK. Release conserva suas opcoes anteriores.
+
+## APK instalado e replay da engine no Android
+
+APK nativo: commit `e69beb46935507c34bd0294cfac944607e4d543e`,
+SHA-256 `8aafcf1bf27a4bfdc4ffce6e791f379794b4d9ab7b7d2542f0e58a9f744b85dd`.
+Certificado debug SHA-256:
+`089676d21a425ef8973d8a32db902bfe7e7b31080439276d585bfd6ee8069c08`.
+Depois da migracao inicial, update via `adb install -r` entre os dois APKs com essa
+chave concluiu com sucesso e preservou os dados. DAT/SPR restaurados e hashes
+conferidos; o cliente confirmou uso dos assets 860 nos caminhos padrao.
+
+A recompilacao com opcoes PCH levou 3min37s. Reavaliacao forcada do mesmo parser,
+sem mudar conteudo, teve um hit direto de ccache: Gradle 10s, helper 11.349s.
+Isso comprova reuso de cache, nao representa uma mudanca de codigo com cache miss.
+
+A fixture PC preparada (`pka-bootstrap.cam`) foi executada na engine do LG K41S:
+FullMap start=65, end=45432, consumed=45367, remaining=0, 32x20.
+O jogador ficou online/known=true em (3320,2049,7), tile central com 11 objetos.
+Esse teste nao abriu conexao com o servidor e nao valida movimento real.
+A fixture contem login+FullMap e termina em 30s; EOF nesse ponto e intencional.
+Ela omite a negociacao de extended opcodes, por isso as tentativas de envio dos
+modulos 1/201 emitiram avisos locais. Nao atribuir isso a rejeicao do servidor.
+O helper foi corrigido para so ocultar CharacterList se a janela existir/estiver visivel.
+O hook temporario de inicializacao foi removido depois da captura; o replay passa
+a depender de execucao explicita. Renderizacao visual depende da observacao no aparelho.
