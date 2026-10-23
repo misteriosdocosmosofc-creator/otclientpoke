@@ -26,7 +26,7 @@ $diagnosticFile = Join-Path $tempRoot 'pka-debug.otml'
 [IO.File]::WriteAllText($diagnosticFile, "level: $Diagnostics`n", [Text.UTF8Encoding]::new($false))
 $fileMap = @{}
 foreach ($relative in $Files) {
-    if ($relative -notmatch '^(modules/.*\.(lua|otui|otmod)|data/(setup\.otml|styles/.*\.otui))$' -or $relative.Contains('..')) {
+    if ($relative -notmatch '^(init\.lua|modules/.*\.(lua|otui|otmod)|data/(setup\.otml|styles/.*\.otui))$' -or $relative.Contains('..')) {
         throw "File outside the allowed module/config paths: $relative"
     }
     $fileMap[$relative] = Join-Path $repoRoot $relative

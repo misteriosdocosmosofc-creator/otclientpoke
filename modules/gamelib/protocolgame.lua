@@ -5,8 +5,10 @@ local extendedJSONData = {}
 local maxPacketSize = 65000
 
 function ProtocolGame:getLoginExtendedData()
-    if g_game.getClientVersion() == 860 and g_game.getProtocolVersion() == 854 then
-        return 'PokeAlliance-q7iTWC4S0rWoQ5'
+    if g_game.getRsa() == POKEALLIANCE_RSA and
+       g_game.getClientVersion() == 860 and g_game.getProtocolVersion() == 854 then
+        -- Version marker decoded from the original client updated 2026-10-23.
+        return 'PokeAlliance-8BJgUpZjpb4hLW'
     end
     return ''
 end

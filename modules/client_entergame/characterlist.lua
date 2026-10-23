@@ -400,7 +400,13 @@ local function tryLogin(charInfo, tries)
     if g_game.isPokeAllianceProtocol() then
         g_game.enableFeature(GameOpcodeU16)
     end
-    g_game.loginWorld(G.account, G.password, charInfo.worldName, charInfo.worldHost, charInfo.worldPort,
+    local worldPassword = G.password
+    if g_game.isPokeAllianceProtocol() and type(G.sessionKey) == 'string' and G.sessionKey ~= '' then
+        -- The updated PKA client sends the HTTPS game ticket as the credential.
+        -- Keep the account password for later HTTPS authentication.
+        worldPassword = G.sessionKey
+    end
+    g_game.loginWorld(G.account, worldPassword, charInfo.worldName, charInfo.worldHost, charInfo.worldPort,
                       charInfo.characterName, G.authenticatorToken, G.sessionKey)
 
     loadBox = displayCancelBox(tr('Please wait'), tr('Connecting to game server...'))

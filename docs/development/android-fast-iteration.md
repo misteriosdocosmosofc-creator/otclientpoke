@@ -61,6 +61,20 @@ mensagens posteriores conhecidas e para no primeiro opcode ainda nao mapeado.
 
 ## Lua e configuracao sem APK
 
+Quando o servidor atualizar o cliente original, confirmar a mensagem de rejeicao
+na gravacao real em `files/.otclient/records/`; nao tratar stdout de um `adb cat`
+que falhou como arquivo CAM. Comparar o login original bem-sucedido antes de
+alterar padding, RSA ou protocolo por tamanho de pacote.
+
+O perfil PKA atualizado em 23/10/2026 usa RSA-1024 com marcador `0xff`, tamanho e
+SHA-256 hexadecimal de um bloco XTEA anexado. As credenciais desse bloco usam o
+ticket de `session.sessionkey` recebido por HTTPS; o marcador de versao continua
+em Lua. `src/client/pkalogin.h` e compartilhado com `tools/pka-login-check.cpp`.
+O verificador recebe uma pasta de fixture PRIVADA e compara o ciphertext XTEA e
+o plaintext RSA com uma captura original autenticada, sem imprimir os campos.
+Nunca incluir essas fixtures/chaves no Git. Uma alteracao somente do marcador
+Lua pode usar sync; alteracao do envelope nativo exige APK incremental.
+
 No Windows, apos instalar um binario compativel:
 
 ```powershell

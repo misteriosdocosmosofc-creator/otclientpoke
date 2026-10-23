@@ -76,7 +76,8 @@ if ENABLE_SERVERS then
         ["https://login.pokealliance.com/login"] = {
             port = 443,
             protocol = 860,
-            httpLogin = false
+            httpLogin = false,
+            useAuthenticator = true
         }
     }
 end

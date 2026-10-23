@@ -848,6 +848,10 @@ function EnterGame.loginSuccess(requestId, jsonSession, jsonWorlds, jsonCharacte
 
     -- set session key
     G.sessionKey = session.sessionkey
+    if g_game.isPokeAllianceProtocol() then
+        local keyBytes = type(G.sessionKey) == 'string' and #G.sessionKey or 0
+        g_logger.info(string.format('[login-flow] HTTPS PKA session-key bytes=%d', keyBytes))
+    end
 
     onCharacterList(nil, characters, account)
 end
@@ -1069,7 +1073,7 @@ function EnterGame.showAuthenticatorInput()
     tokenEdit:addAnchor(AnchorHorizontalCenter, 'parent', AnchorHorizontalCenter)
     tokenEdit:addAnchor(AnchorTop, 'content', AnchorBottom)
     tokenEdit:setMarginTop(10)
-    tokenEdit:setMaxLength(8)
+    tokenEdit:setMaxLength(16)
     tokenEdit:setWidth(320)
     tokenEdit:setHeight(16)
     tokenEdit:setMarginLeft(15)

@@ -23,6 +23,7 @@
 #include "game.h"
 #include "item.h"
 #include "protocolgame.h"
+#include "pkalogin.h"
 #include "framework/net/outputmessage.h"
 #include "protocolcodes.h"
 #include "thingtypemanager.h"
@@ -101,6 +102,32 @@ void ProtocolGame::sendLoginPacket(const uint32_t challengeTimestamp, const uint
     }
 
     const int offset = msg->getMessageSize();
+
+    if (g_game.isPokeAllianceProtocol() && g_game.getFeature(Otc::GameLoginPacketEncryption)) {
+        generateXteaKey();
+        const auto credentials = std::make_shared<OutputMessage>();
+        credentials->addString(m_accountName);
+        credentials->addString(m_characterName);
+        credentials->addString(m_accountPassword);
+        credentials->addString(callLuaField<std::string>("getLoginChallengeReplacement"));
+        credentials->addString(callLuaField<std::string>("getLoginExtendedData"));
+        const auto encrypted = PkaLogin::encryptCredentials(credentials->getBuffer(), m_xteaKey);
+        const auto header = PkaLogin::rsaHeader(m_xteaKey, encrypted.size(), g_crypt.sha256(encrypted),
+                                               g_crypt.rsaGetSize());
+        msg->addBytes(header);
+        msg->encryptRsa();
+        msg->addBytes(encrypted);
+        g_logger.info("[login-flow] PKA login envelope prepared bytes={} rsaBytes={} credentialBytes={} clientVersion={} protocolVersion={}",
+                      msg->getMessageSize(), header.size(), encrypted.size(), g_game.getClientVersion(),
+                      g_game.getProtocolVersion());
+        if (g_game.getFeature(Otc::GameProtocolChecksum))
+            enableChecksum();
+        send(msg);
+        enableXteaEncryption();
+        if (g_game.getFeature(Otc::GameSequencedPackets))
+            enabledSequencedPackets();
+        return;
+    }
 
     if (g_game.getFeature(Otc::GameLoginPacketEncryption)) {
         // first RSA byte must be 0
