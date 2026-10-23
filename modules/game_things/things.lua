@@ -87,6 +87,15 @@ local function load(version)
         if not g_sprites.loadSpr(sprPath) then
             errorList[#errorList + 1] = tr('Unable to load spr file, please place a valid spr in \'%s.spr\'', sprPath)
         end
+        -- The PKA 860 asset pair uses RGBA sprite runs (things.otfi:
+        -- transparency=true). The loader does not read that metadata file.
+        -- Match the asset signatures because RSA/profile selection happens
+        -- after onClientVersionChange has loaded DAT/SPR.
+        if version == 860 and g_things.getDatSignature() == 0xBCBCF8F6 and
+           g_sprites.getSprSignature() == 0x5D97AB7B then
+            g_game.enableFeature(GameSpritesAlphaChannel)
+            g_logger.info('[game_things] PKA 860 RGBA sprites enabled by asset signatures.')
+        end
         if g_game.getFeature(GameLoadSprInsteadProtobuf) and version >= 1281 then
             local staticPath = resolvepath(string.format('/data/things/%d/appearances', version))
             if not g_things.loadAppearances(staticPath) then
