@@ -4176,33 +4176,20 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, const Position 
         m_mapPrefixCaptured = true;
     }
 
-    // PKA's 860/854 tile format writes the ground as a fixed U16 id + U8 data
-    // field, even when the DAT item type would not make getItem consume a
-    // subtype. The standard OTC thing parser therefore leaves one byte behind
-    // and misreads every following thing on that tile.
-    int firstThingStackPos = 0;
+    // The original PKA reader stores this U16/U8 in Tile fields, then starts
+    // its thing list at stack position zero. These are tile metadata, not an
+    // item: inserting a synthetic ground shifts every server stack reference.
     if (pkaMap860Format && msg->getUnreadSize() >= 2 && msg->peekU16() < 0xff00) {
-        const uint16_t groundId = msg->getU16();
-        const uint8_t groundData = msg->getU8();
-        if (groundId != 0) {
-            const auto& ground = Item::create(groundId);
-            if (!ground || ground->getId() == 0)
-                throw Exception("Invalid PKA ground id {}", groundId);
-            if (ground->isStackable() || ground->isFluidContainer() || ground->isSplash() ||
-                ground->isChargeable()) {
-                ground->setCountOrSubType(groundData);
-            }
-            g_map.addThing(ground, position, 0);
-            firstThingStackPos = 1;
-        }
+        const uint16_t tileValue = msg->getU16();
+        const uint8_t tileFlags = msg->getU8();
         if (pkaMapTrace && m_mapThingTraceCount == 0) {
-            g_logger.info("[pka-map-ground] tile=({}, {}, {}) id={} data={} readPos={}",
-                position.x, position.y, position.z, groundId, groundData, msg->getReadPos());
+            g_logger.info("[pka-map-metadata] tile=({}, {}, {}) value={} flags={} readPos={}",
+                position.x, position.y, position.z, tileValue, tileFlags, msg->getReadPos());
         }
     }
 
     bool gotEffect = false;
-    for (auto stackPos = firstThingStackPos; stackPos < 256; ++stackPos) {
+    for (auto stackPos = 0; stackPos < 256; ++stackPos) {
         if (msg->getUnreadSize() < 2) {
             g_logger.error("[pka-map-debug] tile stream ended before U16 marker at ({}, {}, {}), stackPos={}, unread={}, messageBytes={}, readPos={}, environmentEffect={}",
                 position.x, position.y, position.z, stackPos, msg->getUnreadSize(),

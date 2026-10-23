@@ -298,24 +298,23 @@ CreatureTail readCreatureTail(Reader& msg, uint16_t type)
         msg.getString(); msg.getU16(); msg.getU16();
     }
 
-    // PC tests ((subtype - 1) & 0xFD): subtypes 1 AND 3 omit this block.
-    if (result.subtype != 1 && result.subtype != 3) {
-        if (result.subtype == 4) {
-            // Seven direct bytes precede the optional byte in FUN_1407588b0.
-            // With gate=0: 7 fixed + 1 subtype field + 1 flag + 1 count = 10.
-            uint8_t optional = 0;
-            for (int i = 0; i < 7; ++i) optional = msg.getU8();
-            if (optional != 0) msg.getU8();
-            msg.getU8(); msg.getU8();
-        }
-        result.recordCount = msg.getU8();
-        for (uint16_t i = 0; i < result.recordCount; ++i) {
-            msg.getU16(); msg.getU64(); msg.getU16();
-            msg.getU8(); msg.getU8(); msg.getU8();
-        }
-        msg.getString();
-        if (result.subtype == 2) msg.getU8();
+    // In the original reader, subtypes 1/3 fall through to the same prelude
+    // reached by subtype 4's explicit branch. They do not skip the record tail.
+    // Updated DX: FUN_140798580 -> LAB_1407992c2 -> LAB_1407994c0.
+    if (result.subtype == 1 || result.subtype == 3 || result.subtype == 4) {
+        uint8_t optional = 0;
+        for (int i = 0; i < 7; ++i) optional = msg.getU8();
+        if (optional != 0) msg.getU8();
+        if (result.subtype == 3 || result.subtype == 4) msg.getU8();
+        msg.getU8();
     }
+    result.recordCount = msg.getU8();
+    for (uint16_t i = 0; i < result.recordCount; ++i) {
+        msg.getU16(); msg.getU64(); msg.getU16();
+        msg.getU8(); msg.getU8(); msg.getU8();
+    }
+    msg.getString();
+    if (result.subtype == 2) msg.getU8();
     return result;
 }
 }
