@@ -15,6 +15,8 @@ export OTCLIENT_USE_CCACHE=true
 export CCACHE_DIR="$OTC_ANDROID_CACHE_ROOT/ccache"
 export CCACHE_BASEDIR="$OTC_ANDROID_REPO"
 export CCACHE_COMPILERCHECK=content
+# Required for Clang PCH caching; iteration builds are identified by commit, not time macros.
+export CCACHE_SLOPPINESS=pch_defines,time_macros
 export CCACHE_MAXSIZE=1G
 export OTCLIENT_DEBUG_KEYSTORE="$OTC_ANDROID_CACHE_ROOT/signing/debug.keystore"
 export CMAKE_BUILD_PARALLEL_LEVEL=4

@@ -17,6 +17,7 @@ permissions:
   pull-requests: read
 
 env:
+  CCACHE_SLOPPINESS: ${{ inputs.build_type == 'debug' && 'pch_defines,time_macros' || '' }}
   JAVA_VERSION: "17"
   NDK_VERSION: "29.0.13599879"
   CMAKE_VERSION: "3.22.1"

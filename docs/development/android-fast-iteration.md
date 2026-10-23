@@ -127,3 +127,16 @@ nao observadas continuam exigindo evidencia, sobretudo atualizacoes durante movi
 As dependencias iniciais foram compiladas no Codespace em 28 minutos. Esse custo
 ficou no cache persistente; nao e uma medida do tempo das proximas correcoes.
 O primeiro build da engine tambem precisa preencher seus proprios objetos.
+
+## Medicao e ccache com PCH
+
+Primeiro Gradle/engine: BUILD SUCCESSFUL em 7 min, apos provisionamento e dependencias.
+Execucao seguinte sem mudancas: 15 s no Gradle, 16.123 s no helper completo.
+Isso mede o caso sem recompilacao, nao uma correcao C++ real.
+
+O primeiro contador do ccache mostrou 24 compilacoes sem cache por PCH. O perfil
+de iteracao agora configura `pch_defines,time_macros` e Clang `-fno-pch-timestamp`,
+conforme o [manual oficial do ccache](https://ccache.dev/manual/4.9.1.html#_precompiled_headers).
+A permissao de macros de tempo e exclusiva desse ciclo de desenvolvimento:
+nao usar __DATE__/__TIME__ como identidade confiavel do binario; registrar commit
+junto ao hash SHA-256 do APK. Release conserva suas opcoes anteriores.

@@ -559,6 +559,10 @@ add_library(otclient_core STATIC ${SOURCE_FILES})
 option(OTCLIENT_ITERATION_BUILD "Isolate frequently edited protocol code from unity batches" OFF)
 if(OTCLIENT_ITERATION_BUILD)
   set_source_files_properties(client/protocolgameparse.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # ccache must hash PCH contents without volatile compilation timestamps.
+    target_compile_options(otclient_core PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:-Xclang;-fno-pch-timestamp>")
+  endif()
 endif()
 
 target_link_libraries(otclient_core PRIVATE unofficial::inih::inireader)
