@@ -62,6 +62,7 @@ void Game::terminate()
 void Game::resetGameStates()
 {
     m_online = false;
+    m_loginResponseHandled = false;
     m_dead = false;
     m_serverBeat = 50;
     m_seq = 0;
@@ -131,8 +132,9 @@ void Game::processConnectionError(const std::error_code& ec)
                      ec.value(), ec.message(), static_cast<bool>(m_protocolGame));
     // connection errors only have meaning if we still have a protocol
     if (m_protocolGame) {
-        // eof = end of file, a clean disconnect
-        if (ec != asio::error::eof)
+        // EOF is quiet after a session or an explicit login response. Before
+        // either, report it so the character-list connection dialog is closed.
+        if (ec != asio::error::eof || (!isOnline() && !m_loginResponseHandled))
             g_lua.callGlobalField("g_game", "onConnectionError", ec.message(), ec.value());
 
         processDisconnect();
@@ -154,11 +156,13 @@ void Game::processDisconnect()
 
 void Game::processUpdateNeeded(const std::string_view signature)
 {
+    m_loginResponseHandled = true;
     g_lua.callGlobalField("g_game", "onUpdateNeeded", signature);
 }
 
 void Game::processLoginError(const std::string_view error)
 {
+    m_loginResponseHandled = true;
     g_lua.callGlobalField("g_game", "onLoginError", error);
 }
 
@@ -169,11 +173,13 @@ void Game::processLoginAdvice(const std::string_view message)
 
 void Game::processLoginWait(const std::string_view message, const uint8_t time)
 {
+    m_loginResponseHandled = true;
     g_lua.callGlobalField("g_game", "onLoginWait", message, time);
 }
 
 void Game::processSessionEnd(const uint8_t reason)
 {
+    m_loginResponseHandled = true;
     g_lua.callGlobalField("g_game", "onSessionEnd", reason);
 }
 

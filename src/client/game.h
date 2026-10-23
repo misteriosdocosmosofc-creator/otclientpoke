@@ -44,11 +44,11 @@ protected:
     void processPing();
     void processPingBack();
 
-    static void processUpdateNeeded(std::string_view signature);
-    static void processLoginError(std::string_view error);
+    void processUpdateNeeded(std::string_view signature);
+    void processLoginError(std::string_view error);
     static void processLoginAdvice(std::string_view message);
-    static void processLoginWait(std::string_view message, uint8_t time);
-    static void processSessionEnd(uint8_t reason);
+    void processLoginWait(std::string_view message, uint8_t time);
+    void processSessionEnd(uint8_t reason);
     static void processLogin();
     void processPendingGame();
     void processEnterGame();
@@ -514,6 +514,7 @@ private:
 
     bool m_tileThingsLuaCallback{ false };
     bool m_online{ false };
+    bool m_loginResponseHandled{ false };
     bool m_dead{ false };
     bool m_expertPvpMode{ false };
     bool m_connectionFailWarned{ false };

@@ -58,6 +58,23 @@ efemera ainda pode exigir uma ultima reinstalacao com backup. Depois, usar updat
 6. Armar coletor; o usuario entra manualmente. Conferir mapa, posicao, movimento,
    mensagens seguintes e estabilidade. Fechar o app apos a coleta.
 
+### Encerramento durante o login
+
+EOF antes de entrar no mundo deve acionar `onConnectionError`, para encerrar a
+janela de conexao. EOF depois de uma sessao ou de uma resposta explicita de erro,
+atualizacao, fila ou fim de sessao preserva o fluxo dessa resposta. O estado de
+resposta e reinicializado em cada login/replay; nao substituir a mensagem original
+do servidor por uma segunda caixa generica de EOF.
+
+Reproducao de 23/10: a CAM privada de apenas challenge seguida por EOF, executada
+sem rede com o login da CharacterList redirecionado ao PacketPlayer, deixou o APK
+`980d1a5b8` com `errors=0`, `loadBoxDestroyed=false`, `online=false` e
+`logging=false`. Isso reproduz a janela travada, sem demonstrar a causa do EOF
+real. O ticket HTTPS tinha cerca de 100 s na tentativa real; seu prazo de validade
+nao foi estabelecido. O log de entrada agora registra somente tamanho e idade do
+ticket, sem valor. Depois do replay, restaurar o rc, fechar e reabrir o app no
+fluxo normal antes do teste real, para nao misturar estado de replay e login.
+
 ## Reproducao sem servidor
 
 `tools/pka-replay/replay.cpp` compila com um compilador C++20 comum, sem engine,

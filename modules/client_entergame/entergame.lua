@@ -75,6 +75,7 @@ end
 
 local function onSessionKey(protocol, sessionKey)
     G.sessionKey = sessionKey
+    G.sessionKeyReceivedAt = g_clock.millis()
 end
 
 local function onCharacterList(protocol, characters, account, otui)
@@ -848,6 +849,7 @@ function EnterGame.loginSuccess(requestId, jsonSession, jsonWorlds, jsonCharacte
 
     -- set session key
     G.sessionKey = session.sessionkey
+    G.sessionKeyReceivedAt = g_clock.millis()
     if g_game.isPokeAllianceProtocol() then
         local keyBytes = type(G.sessionKey) == 'string' and #G.sessionKey or 0
         g_logger.info(string.format('[login-flow] HTTPS PKA session-key bytes=%d', keyBytes))

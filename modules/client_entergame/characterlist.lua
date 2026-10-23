@@ -405,6 +405,8 @@ local function tryLogin(charInfo, tries)
         -- The updated PKA client sends the HTTPS game ticket as the credential.
         -- Keep the account password for later HTTPS authentication.
         worldPassword = G.sessionKey
+        local ticketAge = G.sessionKeyReceivedAt and math.max(0, g_clock.millis() - G.sessionKeyReceivedAt) or -1
+        g_logger.info(string.format('[login-flow] PKA world ticket bytes=%d ageMs=%d', #G.sessionKey, ticketAge))
     end
     g_game.loginWorld(G.account, worldPassword, charInfo.worldName, charInfo.worldHost, charInfo.worldPort,
                       charInfo.characterName, G.authenticatorToken, G.sessionKey)
