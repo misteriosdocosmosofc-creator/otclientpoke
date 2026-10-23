@@ -71,9 +71,22 @@ sem rede com o login da CharacterList redirecionado ao PacketPlayer, deixou o AP
 `980d1a5b8` com `errors=0`, `loadBoxDestroyed=false`, `online=false` e
 `logging=false`. Isso reproduz a janela travada, sem demonstrar a causa do EOF
 real. O ticket HTTPS tinha cerca de 100 s na tentativa real; seu prazo de validade
-nao foi estabelecido. O log de entrada agora registra somente tamanho e idade do
+nao foi estabelecido: a tentativa aceita as 16:03 usava um ticket recebido as
+13:03, entao a idade de 100 s nao e prova de expiracao. O log de entrada registra somente tamanho e idade do
 ticket, sem valor. Depois do replay, restaurar o rc, fechar e reabrir o app no
 fluxo normal antes do teste real, para nao misturar estado de replay e login.
+
+APK `91d6ded02`: cinco cenarios na engine passaram (erro explicito, EOF sem
+resposta, fila, fim de sessao e atualizacao). No EOF sem resposta houve um unico
+`onConnectionError`, com a janela de conexao destruida; os demais preservaram a
+resposta especifica, sem erro de conexao duplicado. O EOF foi testado depois do
+erro explicito, exercitando tambem o reset do estado entre tentativas.
+O roteiro privado falhou na limpeza antes de iniciar o replay de movimento;
+esse trecho nao constitui validacao de movimento deste APK. O roteiro foi
+corrigido, rc/config foram restaurados byte a byte e o app foi reaberto no fluxo
+normal para uma tentativa manual. O serializador de login continua reproduzindo
+exatamente os blocos XTEA/RSA da fixture PC e os quatro campos preauth ativos
+conferem com a captura autenticada. A causa do encerramento real segue pendente.
 
 ## Reproducao sem servidor
 
