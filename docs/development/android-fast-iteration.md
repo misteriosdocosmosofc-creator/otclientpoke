@@ -27,6 +27,17 @@ com o ELF do mesmo APK/build. Frames repetidos no unwinder isoladamente nao
 comprovam recursao. Reproduzir a CAM na engine para exercitar o estado/movimento,
 alem do leitor offline de bytes, antes da proxima entrada real.
 
+Regressao de 23/10/2026: a mesma CAM de 13 mensagens reproduziu SIGBUS no APK
+anterior e completou os dois movimentos +25 s online no APK `77e2ebcb9`, sem
+fatal nativo. O replay nao valida estabilidade de uma conexao real prolongada.
+O screenshot revelou tambem sprites corrompidos: o SPR PKA usa RGBA, confirmado
+em todos os 586208 sprites nao vazios, enquanto o loader estava em RGB.
+`game_things/things.lua` habilita alpha apenas no par DAT/SPR conhecido do
+perfil 860, pelas assinaturas. Essa correcao Lua usa sync com hash, sem novo APK.
+No segundo replay o mapa, criaturas e itens renderizaram legiveis por 25 s.
+Remover/restaurar qualquer hook temporario de replay antes do teste real e
+conferir o arquivo original por hash. Manter CAMs e screenshots privados.
+
 ## Assinatura consistente
 
 O Codespace usa `/workspaces/.otc-android/signing/debug.keystore`. A mesma chave esta
