@@ -4509,18 +4509,16 @@ CreaturePtr ProtocolGame::getCreature(const InputMessagePtr& msg, int type) cons
 
             if (pkaSubtype != 1) {
                 if (pkaSubtype == 4) {
-                    // The PC reader has a subtype-4-only prelude here, but its
-                    // conditional field meanings/count are not yet validated
-                    // against a PKA 860/854 capture. Keep this isolated from
-                    // the confirmed subtype-2 path below.
-                    msg->getU8();
-                    msg->getU8();
-                    msg->getU8();
-                    msg->getU8();
-                    msg->getU8();
-                    msg->getU8();
-                    const bool hasExtra = msg->getU8() != 0;
-                    if (hasExtra)
+                    // PC consumes six fixed bytes, then an optional byte when
+                    // the sixth fixed byte is nonzero, followed by two bytes
+                    // for subtype 4 before its record count.
+                    bool hasOptionalByte = false;
+                    for (uint8_t i = 0; i < 6; ++i) {
+                        const auto field = msg->getU8();
+                        if (i == 5)
+                            hasOptionalByte = field != 0;
+                    }
+                    if (hasOptionalByte)
                         msg->getU8();
                     msg->getU8();
                     msg->getU8();
