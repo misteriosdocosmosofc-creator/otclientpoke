@@ -263,3 +263,37 @@ modulos 1/201 emitiram avisos locais. Nao atribuir isso a rejeicao do servidor.
 O helper foi corrigido para so ocultar CharacterList se a janela existir/estiver visivel.
 O hook temporario de inicializacao foi removido depois da captura; o replay passa
 a depender de execucao explicita. Renderizacao visual depende da observacao no aparelho.
+
+## Reentrada, minimapa e luz: checkpoint 23/10/2026
+
+APK `1436579ee026425b6790051156d64a7562b5d59d`, SHA-256
+`d815097c731aaf60f8177caa57b8e572c227e909bbb4f1a4f2eff0ef6ec3ea89`,
+instalado com a mesma chave persistente. A gravacao da reentrada antes rejeitada
+com lookType zero passou na engine Android: FullMap start63/end29433,
+31124 bytes restantes consumidos pelo bootstrap. Jogador conhecido, camera e
+centro em (3961,3859,6). A sessao anterior de 90 mensagens tambem terminou na
+posicao esperada (3324,2058,7), sem nova excecao de protocolo.
+
+A primeira captura dessa nova cena ficou preta. Comparacao da MESMA gravacao,
+sem alterar parser, assets ou camera, mostrou cenario legivel ao desativar
+`setDrawLights`: a iluminacao era responsavel pelo escurecimento nesse teste.
+Por pedido do usuario, o perfil local foi ajustado para ambientLight100 e
+enableLightsfalse; isso e preferencia local, nao mudanca global de protocolo.
+Capturas privadas `outfit-new-map.png`/`outfit-new-map-no-lights.png` preservam
+a comparacao. Esse resultado nao substitui o teste de nova conexao real.
+
+O botao X do minimapa ampliado foi validado por toque em replay, retornando
+ao jogo. Hooks de reproducao e configuracao temporaria foram restaurados e
+conferidos byte a byte antes de iniciar o fluxo normal. O teste real desse APK
+continua pendente neste checkpoint; a sessao real anterior de nove minutos
+pertence ao APK91d6ded02, nao a este.
+
+Validacao real posterior: usuario confirmou "Entrou, cenario claro, andou e o X
+funcionou". FullMap real as18:11:54 concluiu start63/end29462/remaining7765;
+snapshot inicial preservou185mensagens recebidas, cenario claro e nenhum marcador
+de excecao de protocolo/crash. A CAM desse snapshot cobre17,455s; a confirmacao
+posterior do usuario valida o teste solicitado separadamente. Copia final sofreu
+timeout ADB; manter a evidencia inicial e o log continuo. Usuario pediu pausa por
+creditos; proxima bateria de assets/protocolo fica para a retomada. O EOF remoto
+original das16:45 continua sem causa conclusiva, embora novas entradas tenham
+sido aceitas e a ultima falha local de FullMap tenha sido corrigida e retestada.
