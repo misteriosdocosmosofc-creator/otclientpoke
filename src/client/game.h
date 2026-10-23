@@ -326,6 +326,13 @@ public:
     void setFeature(const Otc::GameFeature feature, const bool enabled) { m_features.set(feature, enabled); }
     bool getFeature(const Otc::GameFeature feature) { return m_features.test(feature); }
 
+    void setPokeAllianceProtocol(bool enabled) {
+        if (m_pokeAllianceProtocol && !enabled) disableFeature(Otc::GameOpcodeU16);
+        m_pokeAllianceProtocol = enabled;
+    }
+    bool isPokeAllianceProtocol() const { return m_pokeAllianceProtocol && m_clientVersion == 860 && m_protocolVersion == 854; }
+    uint8_t getProtocolDiagnostics() const;
+
     void setProtocolVersion(uint16_t version);
     int getProtocolVersion() { return m_protocolVersion; }
 
@@ -524,6 +531,7 @@ private:
     uint16_t m_pingDelay{ 1000 };
     uint16_t m_protocolVersion{ 0 };
     uint16_t m_clientVersion{ 0 };
+    bool m_pokeAllianceProtocol{ false };
     uint32_t m_pingSent{ 0 };
     uint32_t m_pingReceived{ 0 };
     uint32_t m_seq{ 0 };

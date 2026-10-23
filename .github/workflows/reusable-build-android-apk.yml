@@ -8,6 +8,9 @@ on:
         required: false
         type: string
         default: release
+    secrets:
+      OTCLIENT_DEBUG_KEYSTORE_BASE64:
+        required: false
 
 permissions:
   contents: read
@@ -198,6 +201,21 @@ jobs:
 
       - name: Make Gradle wrapper executable
         run: chmod +x android/gradlew
+
+      - name: Restore persistent development signing key
+        env:
+          OTCLIENT_DEBUG_KEYSTORE_BASE64: ${{ secrets.OTCLIENT_DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$OTCLIENT_DEBUG_KEYSTORE_BASE64" ]]; then
+            signing_dir="$RUNNER_TEMP/otclient-signing"
+            mkdir -p "$signing_dir"
+            printf '%s' "$OTCLIENT_DEBUG_KEYSTORE_BASE64" | tr -d '\r\n' | base64 --decode > "$signing_dir/debug.keystore"
+            chmod 600 "$signing_dir/debug.keystore"
+            echo "OTCLIENT_DEBUG_KEYSTORE=$signing_dir/debug.keystore" >> "$GITHUB_ENV"
+          elif [[ '${{ inputs.build_type }}' == debug ]]; then
+            echo '::warning::No persistent debug signing secret configured for this repository.'
+          fi
 
       - name: Cache Android C/C++ compiler outputs
         uses: actions/cache@v4

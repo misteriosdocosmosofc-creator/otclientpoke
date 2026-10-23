@@ -25,6 +25,7 @@
 #include "declarations.h"
 #include "framework/net/protocol.h"
 #include "staticdata.h"
+#include "pkaprotocol.h"
 
 class ProtocolGame final : public Protocol
 {
@@ -478,6 +479,14 @@ private:
     bool m_mapKnown{ false };
     bool m_firstRecv{ true };
     bool m_record{ false };
+    uint8_t m_diagnosticsLevel{ 1 };
+    bool m_payloadCaptured{ false };
+    uint32_t m_mapThingTraceCount{ 0 };
+    uint16_t m_mapLateThingTraceCount{ 0 };
+    bool m_mapPrefixCaptured{ false };
+    mutable uint16_t m_creatureTraceCount{ 0 };
+    PkaProtocol::ItemAttributes m_lastPkaItemAttributes;
+    uint16_t m_lastPkaItemExtraBytes{ 0 };
 
     ticks_t m_lastPartyAnalyzerCall{ 0 };
     int m_recivedPackeds = 0;

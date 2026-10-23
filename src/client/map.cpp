@@ -26,6 +26,7 @@
 #include "client/const.h"
 #include "creatures.h"
 #include "game.h"
+#include "pkaprotocol.h"
 #include "gameconfig.h"
 #include "item.h"
 #include "localplayer.h"
@@ -855,7 +856,7 @@ uint8_t Map::getFirstAwareFloor() const
     if (m_centralPosition.z <= g_gameConfig.getMapSeaFloor())
         return 0;
 
-    return m_centralPosition.z - g_gameConfig.getMapAwareUndergroundFloorRange();
+    return m_centralPosition.z - (g_game.isPokeAllianceProtocol() ? PkaProtocol::UndergroundRange : g_gameConfig.getMapAwareUndergroundFloorRange());
 }
 
 uint8_t Map::getLastAwareFloor() const
@@ -863,7 +864,7 @@ uint8_t Map::getLastAwareFloor() const
     if (m_centralPosition.z <= g_gameConfig.getMapSeaFloor())
         return g_gameConfig.getMapSeaFloor();
 
-    return std::min<uint8_t >(m_centralPosition.z + g_gameConfig.getMapAwareUndergroundFloorRange(), g_gameConfig.getMapMaxZ());
+    return std::min<uint8_t >(m_centralPosition.z + (g_game.isPokeAllianceProtocol() ? PkaProtocol::UndergroundRange : g_gameConfig.getMapAwareUndergroundFloorRange()), g_gameConfig.getMapMaxZ());
 }
 
 std::tuple<std::vector<Otc::Direction>, Otc::PathFindResult> Map::findPath(const Position& startPos, const Position& goalPos, const int maxComplexity, const int flags)

@@ -49,6 +49,14 @@ android {
     }
 
     signingConfigs {
+        getByName("debug") {
+            System.getenv("OTCLIENT_DEBUG_KEYSTORE")?.let { persistentKey ->
+                storeFile = file(persistentKey)
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
         create("release") {
             // Use env vars for custom release signing; otherwise use Gradle's debug signing config
             storeFile = file(System.getenv("RELEASE_KEYSTORE")
@@ -67,6 +75,13 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            externalNativeBuild {
+                cmake {
+                    arguments += listOf("-DOPTIONS_ENABLE_IPO=OFF", "-DOTCLIENT_ITERATION_BUILD=ON")
+                }
+            }
+        }
         getByName("release") {
             isMinifyEnabled = false
             isShrinkResources = false

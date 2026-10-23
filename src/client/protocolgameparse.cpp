@@ -30,6 +30,7 @@
 #include "localplayer.h"
 #include "protocolgame.h"
 #include "protocolcodes.h"
+#include "pkaprotocol.h"
 #include "luavaluecasts_client.h"
 #include "map.h"
 #include "mapview.h"
@@ -50,10 +51,11 @@
 
 void ProtocolGame::parseMessage(const InputMessagePtr& msg)
 {
-    const bool pkaProtocolDebug = g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854;
+    m_diagnosticsLevel = g_game.getProtocolDiagnostics();
+    const bool pkaProtocolDebug = g_game.isPokeAllianceProtocol() && m_diagnosticsLevel > 0;
     // Capture specific payloads only when enabled; FullMap is captured below
     // while diagnosing PKA tile-stream alignment.
-    constexpr bool pkaPayloadCapture = false;
+    const bool pkaPayloadCapture = m_diagnosticsLevel >= 3;
     int opcode = -1;
     int prevOpcode = -1;
     std::string opcodeTrace;
@@ -103,6 +105,14 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
             }
             msg->setReadPos(readPos);
             // restore read pos
+
+            if (g_game.isPokeAllianceProtocol() && PkaProtocol::readAuxiliary(*msg, static_cast<uint16_t>(opcode))) {
+                if (pkaProtocolDebug)
+                    g_logger.info("[pka-custom] opcode=0x{:04X} start={} end={} remaining={}",
+                        opcode, opcodePos, msg->getReadPos(), msg->getUnreadSize());
+                prevOpcode = opcode;
+                continue;
+            }
 
             switch (opcode) {
                 case Proto::GameServerLoginOrPendingState:
@@ -209,7 +219,8 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                     parseTaskBoardData(msg);
                     break;
                 case Proto::GameServerWeaponProficiencyExperience:
-                    parseWeaponProficiencyExperience(msg);
+                    if (g_game.isPokeAllianceProtocol()) PkaProtocol::readCustomWindow(*msg);
+                    else parseWeaponProficiencyExperience(msg);
                     break;
                 case Proto::GameServerImbuementDurations:
                     parseImbuementDurations(msg);
@@ -227,7 +238,8 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                     parseClientCheck(msg);
                     break;
                 case Proto::GameServerFullMap:
-                    if (pkaProtocolDebug) {
+                    if (pkaProtocolDebug && m_diagnosticsLevel >= 3 && !m_payloadCaptured) {
+                        m_payloadCaptured = true;
                         const auto payload = msg->peekBytes(msg->getUnreadSize());
                         // Split the body into log entries small enough for Android logcat.
                         constexpr size_t payloadChunkSize = 384;
@@ -709,7 +721,10 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                     parseCompleteStorePurchase(msg);
                     break;
                 case Proto::GameServerOpenWheelWindow: // 0x5F
-                    parseOpenWheelWindow(msg);
+                    if (g_game.isPokeAllianceProtocol()) {
+                        if (!PkaProtocol::readMapAnnotations(*msg))
+                            throw Exception("Unsupported PKA map annotation mode");
+                    } else parseOpenWheelWindow(msg);
                     break;
                 default: {
                     const auto unreadSize = msg->getUnreadSize();
@@ -897,17 +912,8 @@ void ProtocolGame::parseLogin(const InputMessagePtr& msg) const
     // before the first game opcode (normally FullMap). Consume the confirmed
     // layout so the regular dispatcher resumes at that opcode. Keep this
     // scoped to the PKA version pair; other 860 servers use the vanilla layout.
-    if (g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854) {
-        msg->getU8(); // PKA login flag
-        msg->getU8(); // PKA login option
-        msg->getU16(); // Rank (0xFFFF means no rank)
-        msg->getString(); // World name
-        msg->getU16(); // Catches
-        msg->getU16(); // Pokedex
-        msg->getU16(); // Arceus level
-        msg->getU64(); // Last login timestamp
-        msg->getU16(); // Achievements
-        msg->getString(); // House
+    if (g_game.isPokeAllianceProtocol()) {
+        PkaProtocol::readLoginExtension(*msg);
     }
 
     m_localPlayer->setId(playerId);
@@ -1619,7 +1625,11 @@ void ProtocolGame::parseMapDescription(const InputMessagePtr& msg)
     g_logger.info("[pka-map-debug] full map position=({}, {}, {}) aware=({}, {}, {}, {}) width={} height={} messageBytes={} readPos={}",
         pos.x, pos.y, pos.z, range.left, range.top, range.right, range.bottom,
         range.horizontal(), range.vertical(), msg->getMessageSize(), msg->getReadPos());
+    const auto mapStart = msg->getReadPos();
     setMapDescription(msg, pos.x - range.left, pos.y - range.top, pos.z, range.horizontal(), range.vertical());
+    if (g_game.isPokeAllianceProtocol() && m_diagnosticsLevel > 0)
+        g_logger.info("[pka-map-complete] start={} end={} consumed={} remaining={} width={} height={}",
+            mapStart, msg->getReadPos(), msg->getReadPos() - mapStart, msg->getUnreadSize(), range.horizontal(), range.vertical());
 
     if (!m_mapKnown) {
         g_dispatcher.addEvent([] { g_lua.callGlobalField("g_game", "onMapKnown"); });
@@ -1725,7 +1735,7 @@ void ProtocolGame::parseCreatureMove(const InputMessagePtr& msg)
 
     // PokeAlliance client 860 appends a U16 movement field after the destination.
     // Without consuming it, it is mistaken for the next server opcode.
-    if (g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854) {
+    if (g_game.isPokeAllianceProtocol()) {
         const auto movementExtension = msg->getU16();
         g_logger.info("[pka-move-debug] trailing movement U16={}", movementExtension);
     }
@@ -1753,6 +1763,7 @@ void ProtocolGame::parseOpenContainer(const InputMessagePtr& msg)
     const auto& name = msg->getString();
     const uint8_t capacity = msg->getU8();
     const bool hasParent = static_cast<bool>(msg->getU8());
+    if (g_game.isPokeAllianceProtocol()) msg->getString(); // PC container description.
 
     bool isUnlocked = true;
     bool hasPages = false;
@@ -1770,7 +1781,7 @@ void ProtocolGame::parseOpenContainer(const InputMessagePtr& msg)
         firstIndex = msg->getU16(); // first index
     }
 
-    const uint8_t itemCount = msg->getU8();
+    const uint16_t itemCount = g_game.isPokeAllianceProtocol() ? msg->getU16() : msg->getU8();
     std::vector<ItemPtr> items;
     items.reserve(itemCount);
 
@@ -2063,6 +2074,7 @@ void ProtocolGame::parseWorldLight(const InputMessagePtr& msg)
 
     const auto intensity = msg->getU8();
     const auto color = msg->getU8();
+    if (g_game.isPokeAllianceProtocol()) msg->getU32();
 
     g_map.setLight({ intensity , color });
 
@@ -2074,6 +2086,15 @@ void ProtocolGame::parseWorldLight(const InputMessagePtr& msg)
 void ProtocolGame::parseMagicEffect(const InputMessagePtr& msg)
 {
     const auto& pos = getPosition(msg);
+    if (g_game.isPokeAllianceProtocol()) {
+        for (const auto effectId : PkaProtocol::readEffects(*msg)) {
+            if (!g_things.isValidDatId(effectId, ThingCategoryEffect)) continue;
+            const auto effect = std::make_shared<Effect>();
+            effect->setId(effectId);
+            g_map.addThing(effect, pos);
+        }
+        return;
+    }
     if (g_game.getProtocolVersion() >= 1203) {
         uint8_t effectType = msg->getU8();
         while (effectType != Otc::MAGIC_EFFECTS_END_LOOP) {
@@ -2530,6 +2551,12 @@ void ProtocolGame::parseCloseForgeWindow(const InputMessagePtr& /*msg*/)
 
 void ProtocolGame::parseCreatureData(const InputMessagePtr& msg)
 {
+    if (g_game.isPokeAllianceProtocol()) {
+        // PC handler FUN_14074fff0 consumes U32,U32,U8,U8 at opcode 0x8B.
+        msg->getU32(); msg->getU32(); msg->getU8(); msg->getU8();
+        return;
+    }
+
     const uint32_t creatureId = msg->getU32();
     const uint8_t type = msg->getU8();
 
@@ -2747,6 +2774,14 @@ void ProtocolGame::parsePlayerInfo(const InputMessagePtr& msg) const
 
 void ProtocolGame::parsePlayerStats(const InputMessagePtr& msg) const
 {
+    if (g_game.isPokeAllianceProtocol()) {
+        const auto stats = PkaProtocol::readPlayerStats(*msg);
+        m_localPlayer->setHealth(stats.health, stats.maxHealth);
+        m_localPlayer->setFreeCapacity(stats.capacity / 100.0);
+        m_localPlayer->setExperience(stats.experience);
+        m_localPlayer->setLevel(stats.level, stats.percent);
+        return;
+    }
     const uint32_t health = g_game.getFeature(Otc::GameDoubleHealth) ? msg->getU32() : msg->getU16();
     const uint32_t maxHealth = g_game.getFeature(Otc::GameDoubleHealth) ? msg->getU32() : msg->getU16();
     uint32_t freeCapacity = g_game.getFeature(Otc::GameDoubleFreeCapacity) ? msg->getU32() : msg->getU16();
@@ -3277,11 +3312,11 @@ void ProtocolGame::parseFloorChangeUp(const InputMessagePtr& msg)
 
     int skip = 0;
     if (pos.z == g_gameConfig.getMapSeaFloor()) {
-        for (auto i = g_gameConfig.getMapSeaFloor() - g_gameConfig.getMapAwareUndergroundFloorRange(); i >= 0; --i) {
+        for (auto i = g_gameConfig.getMapSeaFloor() - (g_game.isPokeAllianceProtocol() ? PkaProtocol::UndergroundRange : g_gameConfig.getMapAwareUndergroundFloorRange()); i >= 0; --i) {
             skip = setFloorDescription(msg, pos.x - range.left, pos.y - range.top, i, range.horizontal(), range.vertical(), 8 - i, skip);
         }
     } else if (pos.z > g_gameConfig.getMapSeaFloor()) {
-        setFloorDescription(msg, pos.x - range.left, pos.y - range.top, pos.z - g_gameConfig.getMapAwareUndergroundFloorRange(), range.horizontal(), range.vertical(), 3, skip);
+        setFloorDescription(msg, pos.x - range.left, pos.y - range.top, pos.z - (g_game.isPokeAllianceProtocol() ? PkaProtocol::UndergroundRange : g_gameConfig.getMapAwareUndergroundFloorRange()), range.horizontal(), range.vertical(), 3, skip);
     }
 
     auto newPos = pos;
@@ -3303,11 +3338,11 @@ void ProtocolGame::parseFloorChangeDown(const InputMessagePtr& msg)
     if (pos.z == g_gameConfig.getMapUndergroundFloorRange()) {
         int j;
         int i;
-        for (i = pos.z, j = -1; i <= pos.z + g_gameConfig.getMapAwareUndergroundFloorRange(); ++i, --j) {
+        for (i = pos.z, j = -1; i <= pos.z + (g_game.isPokeAllianceProtocol() ? PkaProtocol::UndergroundRange : g_gameConfig.getMapAwareUndergroundFloorRange()); ++i, --j) {
             skip = setFloorDescription(msg, pos.x - range.left, pos.y - range.top, i, range.horizontal(), range.vertical(), j, skip);
         }
     } else if (pos.z > g_gameConfig.getMapUndergroundFloorRange() && pos.z < g_gameConfig.getMapMaxZ() - 1) {
-        setFloorDescription(msg, pos.x - range.left, pos.y - range.top, pos.z + g_gameConfig.getMapAwareUndergroundFloorRange(), range.horizontal(), range.vertical(), -3, skip);
+        setFloorDescription(msg, pos.x - range.left, pos.y - range.top, pos.z + (g_game.isPokeAllianceProtocol() ? PkaProtocol::UndergroundRange : g_gameConfig.getMapAwareUndergroundFloorRange()), range.horizontal(), range.vertical(), -3, skip);
     }
 
     auto newPos = pos;
@@ -3320,7 +3355,7 @@ void ProtocolGame::parseFloorChangeDown(const InputMessagePtr& msg)
 
 void ProtocolGame::parseOpenOutfitWindow(const InputMessagePtr& msg) const
 {
-    const bool pkaOutfitDebug = g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854;
+    const bool pkaOutfitDebug = g_game.isPokeAllianceProtocol();
     const auto tracePkaOutfit = [&](const char* stage) {
         if (pkaOutfitDebug) {
             g_logger.info("[pka-outfit-debug] stage={} messageBytes={} readPos={} unread={} newOutfit={} mounts={} familiars={} cosmetics={}",
@@ -3577,6 +3612,7 @@ void ProtocolGame::parseVipAdd(const InputMessagePtr& msg)
     }
 
     const uint32_t status = msg->getU8();
+    if (g_game.isPokeAllianceProtocol()) msg->getU32(); // PC VIP entry extension.
     if (g_game.getFeature(Otc::GameVipGroups)) {
         const uint8_t vipGroupSize = msg->getU8();
         groupIDs.reserve(vipGroupSize);
@@ -4084,8 +4120,9 @@ void ProtocolGame::setMapDescription(const InputMessagePtr& msg, const int x, co
     int zstep;
 
     if (z > g_gameConfig.getMapSeaFloor()) {
-        startz = z - g_gameConfig.getMapAwareUndergroundFloorRange();
-        endz = std::min<int>(z + g_gameConfig.getMapAwareUndergroundFloorRange(), g_gameConfig.getMapMaxZ());
+        const auto floorRange = g_game.isPokeAllianceProtocol() ? PkaProtocol::UndergroundRange : g_gameConfig.getMapAwareUndergroundFloorRange();
+        startz = z - floorRange;
+        endz = std::min<int>(z + floorRange, g_gameConfig.getMapMaxZ());
         zstep = 1;
     } else {
         startz = g_gameConfig.getMapSeaFloor();
@@ -4121,12 +4158,9 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, const Position 
 {
     g_map.cleanTile(position);
 
-    const bool pkaMap860Format = g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854;
-    const bool pkaMapTrace = pkaMap860Format;
-    static uint32_t pkaMapThingTraceCount = 0;
-    static uint16_t pkaMapLateThingTraceCount = 0;
-    static bool pkaMapPrefixCaptured = false;
-    if (pkaMapTrace && !pkaMapPrefixCaptured) {
+    const bool pkaMap860Format = g_game.isPokeAllianceProtocol();
+    const bool pkaMapTrace = pkaMap860Format && m_diagnosticsLevel >= 2;
+    if (pkaMapTrace && !m_mapPrefixCaptured) {
         constexpr char hexDigits[] = "0123456789ABCDEF";
         const auto prefix = msg->peekBytes(48);
         std::string prefixHex;
@@ -4139,7 +4173,7 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, const Position 
         g_logger.info("[pka-map-prefix] tile=({}, {}, {}) readPos={} environmentEffect={} bytes={}",
             position.x, position.y, position.z, msg->getReadPos(),
             g_game.getFeature(Otc::GameEnvironmentEffect), prefixHex);
-        pkaMapPrefixCaptured = true;
+        m_mapPrefixCaptured = true;
     }
 
     // PKA's 860/854 tile format writes the ground as a fixed U16 id + U8 data
@@ -4152,6 +4186,8 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, const Position 
         const uint8_t groundData = msg->getU8();
         if (groundId != 0) {
             const auto& ground = Item::create(groundId);
+            if (!ground || ground->getId() == 0)
+                throw Exception("Invalid PKA ground id {}", groundId);
             if (ground->isStackable() || ground->isFluidContainer() || ground->isSplash() ||
                 ground->isChargeable()) {
                 ground->setCountOrSubType(groundData);
@@ -4159,7 +4195,7 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, const Position 
             g_map.addThing(ground, position, 0);
             firstThingStackPos = 1;
         }
-        if (pkaMapThingTraceCount == 0) {
+        if (pkaMapTrace && m_mapThingTraceCount == 0) {
             g_logger.info("[pka-map-ground] tile=({}, {}, {}) id={} data={} readPos={}",
                 position.x, position.y, position.z, groundId, groundData, msg->getReadPos());
         }
@@ -4175,7 +4211,7 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, const Position 
         const uint16_t nextThingId = msg->peekU16();
         if (nextThingId >= 0xff00) {
             const uint16_t skip = msg->getU16() & 0xff;
-            if (pkaMapTrace && pkaMapThingTraceCount < 32) {
+            if (pkaMapTrace && m_mapThingTraceCount < 32) {
                 g_logger.info("[pka-map-step] tile=({}, {}, {}) stack={} readPos={} marker=0x{:04X} skip={}",
                     position.x, position.y, position.z, stackPos, msg->getReadPos() - 2, nextThingId, skip);
             }
@@ -4192,11 +4228,11 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, const Position 
             g_logger.traceError("ProtocolGame::setTileDescription: too many things, pos={}, stackpos={}", position, stackPos);
         }
 
-        const bool traceThing = pkaMapTrace && pkaMapThingTraceCount < 32;
+        const bool traceThing = pkaMapTrace && m_mapThingTraceCount < 32;
         const auto thingReadPos = msg->getReadPos();
-        const bool traceLateThing = pkaMapTrace && thingReadPos >= 46000 && pkaMapLateThingTraceCount < 120;
+        const bool traceLateThing = pkaMapTrace && thingReadPos >= 46000 && m_mapLateThingTraceCount < 120;
         if (traceLateThing) {
-            ++pkaMapLateThingTraceCount;
+            ++m_mapLateThingTraceCount;
             g_logger.info("[pka-map-late] begin tile=({}, {}, {}) stack={} readPos={} nextThingId=0x{:04X}",
                 position.x, position.y, position.z, stackPos, thingReadPos, nextThingId);
         }
@@ -4205,27 +4241,9 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, const Position 
                 position.x, position.y, position.z, stackPos, thingReadPos, nextThingId);
         }
         const auto& thing = getThing(msg);
-        uint8_t pkaItemExtraBytes = 0;
-        uint8_t pkaTextFlag = 0xFF;
-        uint8_t pkaMetadataFlag = 0xFF;
-        if (pkaMap860Format && thing->isItem()) {
-            // PKA's item stream has a text discriminator followed by a
-            // metadata discriminator. The text payload is variable length.
-            const auto extraStart = msg->getReadPos();
-            pkaTextFlag = msg->getU8();
-            if (pkaTextFlag == 1) {
-                msg->getString();
-                msg->getString();
-                if (thing->getId() == 0x25A0)
-                    msg->getString();
-                msg->getU8();
-                msg->getU16();
-            } else if (pkaTextFlag == 3) {
-                msg->getString();
-            }
-            pkaMetadataFlag = msg->getU8();
-            pkaItemExtraBytes = static_cast<uint8_t>(msg->getReadPos() - extraStart);
-        }
+        const auto pkaTextFlag = m_lastPkaItemAttributes.text;
+        const auto pkaMetadataFlag = m_lastPkaItemAttributes.metadata;
+        const auto pkaItemExtraBytes = thing->isItem() ? m_lastPkaItemExtraBytes : 0;
         if (traceLateThing) {
             g_logger.info("[pka-map-late] end tile=({}, {}, {}) stack={} thingId={} isItem={} textFlag={} metadataFlag={} itemExtraBytes={} endReadPos={}",
                 position.x, position.y, position.z, stackPos, thing->getId(), thing->isItem(),
@@ -4236,7 +4254,7 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, const Position 
                 position.x, position.y, position.z, stackPos, thing->getId(), pkaItemExtraBytes, msg->getReadPos());
         }
         if (pkaMapTrace) {
-            ++pkaMapThingTraceCount;
+            ++m_mapThingTraceCount;
         }
         if (thing->isLocalPlayer()) {
             thing->static_self_cast<LocalPlayer>()->resetPreWalk();
@@ -4261,6 +4279,9 @@ Outfit ProtocolGame::getOutfit(const InputMessagePtr& msg, const bool parseMount
         const uint8_t legs = msg->getU8();
         const uint8_t feet = msg->getU8();
         const uint8_t addons = g_game.getFeature(Otc::GamePlayerAddons) ? msg->getU8() : 0;
+
+        if (g_game.isPokeAllianceProtocol())
+            PkaProtocol::readOutfitExtension(*msg);
 
         if (!g_things.isValidDatId(lookType, ThingCategoryCreature)) {
             g_logger.traceError("invalid outfit looktype {}", lookType);
@@ -4359,12 +4380,11 @@ ThingPtr ProtocolGame::getMappedThing(const InputMessagePtr& msg) const
 
 CreaturePtr ProtocolGame::getCreature(const InputMessagePtr& msg, int type) const
 {
-    static uint16_t pkaCreatureTraceCount = 0;
     const int pkaCreatureStart = msg->getReadPos();
-    const bool tracePkaCreature = g_game.getClientVersion() == 860 &&
-        g_game.getProtocolVersion() == 854 && pkaCreatureStart >= 40000 && pkaCreatureTraceCount < 120;
+    const bool tracePkaCreature = g_game.isPokeAllianceProtocol() &&
+        m_diagnosticsLevel >= 2 && m_creatureTraceCount < 120;
     if (tracePkaCreature) {
-        ++pkaCreatureTraceCount;
+        ++m_creatureTraceCount;
         g_logger.info("[pka-creature-late] begin type=0x{:04X} readPos={}", type, pkaCreatureStart);
     }
     if (type == 0) {
@@ -4469,77 +4489,17 @@ CreaturePtr ProtocolGame::getCreature(const InputMessagePtr& msg, int type) cons
         uint8_t skull = 0;
         uint8_t shield = 0;
 
-        const bool pkaMap860Format = g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854;
-        uint8_t pkaSubtype = 0xFF;
-        uint8_t pkaAttributeCount = 0;
-        uint8_t pkaRecordCount = 0;
+        const bool pkaMap860Format = g_game.isPokeAllianceProtocol();
         if (pkaMap860Format) {
-            if (outfit.isCreature()) {
-                // The PC reader consumes this pair for every non-zero looktype.
-                msg->getU64();
-                msg->getU64();
-                // The observed 860/854 PKA profile has outfit extension bit 42 enabled.
-                msg->getString();
-            }
-
-            speed = msg->getU16();
-            skull = msg->getU8();
-            shield = msg->getU8();
-            if (type == Proto::UnknownCreature)
-                emblem = msg->getU8();
-
-            pkaSubtype = msg->getU8();
-            unpass = msg->getU8() == 0;
-            if (pkaSubtype == 0)
-                msg->getString();
-
-            msg->getU8();
-            msg->getU16();
-            msg->getString();
-            msg->getU8();
-            msg->getU8();
-            msg->getU8();
-
-            pkaAttributeCount = msg->getU8();
-            for (uint16_t i = 0; i < pkaAttributeCount; ++i) {
-                msg->getString();
-                msg->getU16();
-                msg->getU16();
-            }
-
-            if (pkaSubtype != 1) {
-                if (pkaSubtype == 4) {
-                    // PC consumes six fixed bytes, then an optional byte when
-                    // the sixth fixed byte is nonzero, followed by two bytes
-                    // for subtype 4 before its record count.
-                    bool hasOptionalByte = false;
-                    for (uint8_t i = 0; i < 6; ++i) {
-                        const auto field = msg->getU8();
-                        if (i == 5)
-                            hasOptionalByte = field != 0;
-                    }
-                    if (hasOptionalByte)
-                        msg->getU8();
-                    msg->getU8();
-                    msg->getU8();
-                }
-
-                pkaRecordCount = msg->getU8();
-                for (uint16_t i = 0; i < pkaRecordCount; ++i) {
-                    msg->getU16();
-                    msg->getU64();
-                    msg->getU16();
-                    msg->getU8();
-                    msg->getU8();
-                    msg->getU8();
-                }
-                msg->getString();
-                if (pkaSubtype == 2)
-                    msg->getU8();
-            }
+            const auto tail = PkaProtocol::readCreatureTail(*msg, static_cast<uint16_t>(type));
+            speed = tail.speed;
+            skull = tail.skull;
+            shield = tail.shield;
+            emblem = tail.emblem;
+            unpass = tail.unpass;
             if (tracePkaCreature) {
-                g_logger.info("[pka-creature-late] end type=0x{:04X} subtype={} outfitCreature={} attributeCount={} recordCount={} endReadPos={}",
-                    type, pkaSubtype, outfit.isCreature(), pkaAttributeCount, pkaRecordCount, msg->getReadPos());
+                g_logger.info("[pka-creature] type=0x{:04X} subtype={} start={} end={} attributes={} records={}",
+                    type, tail.subtype, pkaCreatureStart, msg->getReadPos(), tail.attributeCount, tail.recordCount);
             }
         } else {
             light.intensity = msg->getU8();
@@ -4701,7 +4661,7 @@ ItemPtr ProtocolGame::getItem(const InputMessagePtr& msg, int id)
     }
 
     if (item->isStackable() || item->isFluidContainer() || item->isSplash() || item->isChargeable()) {
-        const bool pkaMap860Format = g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854;
+        const bool pkaMap860Format = g_game.isPokeAllianceProtocol();
         const bool useU16Count = g_game.getFeature(Otc::GameCountU16) || (pkaMap860Format && item->isStackable());
         item->setCountOrSubType(useU16Count ? msg->getU16() : msg->getU8());
     }
@@ -4835,6 +4795,12 @@ ItemPtr ProtocolGame::getItem(const InputMessagePtr& msg, int id)
 
     if (g_game.getFeature(Otc::GameItemTooltipV8)) {
         item->setTooltip(msg->getString());
+    }
+
+    if (g_game.isPokeAllianceProtocol()) {
+        const auto attributesStart = msg->getReadPos();
+        m_lastPkaItemAttributes = PkaProtocol::readItemAttributes(*msg, item->getId());
+        m_lastPkaItemExtraBytes = static_cast<uint16_t>(msg->getReadPos() - attributesStart);
     }
 
     return item;

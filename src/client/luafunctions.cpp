@@ -255,6 +255,8 @@ void Client::registerLuaFunctions()
     g_lua.registerSingletonClass("g_game");
     g_lua.bindSingletonFunction("g_game", "loginWorld", &Game::loginWorld, &g_game);
     g_lua.bindSingletonFunction("g_game", "playRecord", &Game::playRecord, &g_game);
+    g_lua.bindSingletonFunction("g_game", "setPokeAllianceProtocol", &Game::setPokeAllianceProtocol, &g_game);
+    g_lua.bindSingletonFunction("g_game", "isPokeAllianceProtocol", &Game::isPokeAllianceProtocol, &g_game);
     g_lua.bindSingletonFunction("g_game", "cancelLogin", &Game::cancelLogin, &g_game);
     g_lua.bindSingletonFunction("g_game", "forceLogout", &Game::forceLogout, &g_game);
     g_lua.bindSingletonFunction("g_game", "safeLogout", &Game::safeLogout, &g_game);

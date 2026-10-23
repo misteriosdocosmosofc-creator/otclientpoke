@@ -25,17 +25,12 @@
 #include "inputmessage.h"
 #include "outputmessage.h"
 #include "framework/core/clock.h"
+#include "framework/core/resourcemanager.h"
 PacketRecorder::PacketRecorder(const std::string_view& file)
 {
     m_start = g_clock.millis();
-#ifdef ANDROID
     g_resources.makeDir("records");
-    m_stream = std::ofstream(std::string("records/") + std::string(file));
-#else
-    std::error_code ec;
-    std::filesystem::create_directory("records", ec);
-    m_stream = std::ofstream(std::filesystem::path("records") / file);
-#endif
+    m_stream = std::ofstream(std::filesystem::path(g_resources.getWriteDir()) / "records" / file);
 }
 
 PacketRecorder::~PacketRecorder()
@@ -49,6 +44,7 @@ void PacketRecorder::addInputPacket(const InputMessagePtr& packet)
         m_stream << std::setfill('0') << std::setw(2) << std::hex << (uint16_t)(uint8_t)buffer;
     }
     m_stream << std::dec << "\n";
+    m_stream.flush(); // Capture remains usable if the next packet fails.
 }
 
 void PacketRecorder::addOutputPacket(const OutputMessagePtr& packet)

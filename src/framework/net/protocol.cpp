@@ -93,6 +93,7 @@ void Protocol::disconnect()
 {
     const bool wasDisconnected = m_disconnected;
     m_disconnected = true;
+    if (m_player) m_player->stop();
     if (m_proxy) {
         g_logger.info("[proxy-debug] protocol disconnect session={} alreadyDisconnected={}", m_proxy, wasDisconnected);
         g_proxy.removeSession(m_proxy);
@@ -107,6 +108,7 @@ void Protocol::disconnect()
 
 bool Protocol::isConnected()
 {
+    if (m_player) return !m_disconnected;
     if (m_proxy)
         return !m_disconnected;
 
@@ -178,7 +180,7 @@ void Protocol::send(const OutputMessagePtr& outputMessage, bool raw)
 
 void Protocol::recv()
 {
-    if (m_proxy) {
+    if (m_proxy || m_player) {
         return;
     }
 
@@ -239,8 +241,8 @@ void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
     // Temporary PokeAlliance 860/854 receive-path diagnostic. The first bytes
     // here are captured before the sequenced-packet flag is consumed.
     static uint32_t pkaRecvDiagnosticCount = 0;
-    const bool pkaRecvDiagnostic = g_game.getOs() == 20 &&
-        g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854 &&
+    const bool pkaRecvDiagnostic = g_game.isPokeAllianceProtocol() &&
+        g_game.getProtocolDiagnostics() >= 2 &&
         pkaRecvDiagnosticCount < 40;
     if (pkaRecvDiagnostic)
         ++pkaRecvDiagnosticCount;
@@ -252,8 +254,7 @@ void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
     }
 
     bool decompress = false;
-    const bool pkaChecksumCompression = g_game.getOs() == 20 &&
-        g_game.getClientVersion() == 860 && g_game.getProtocolVersion() == 854 &&
+    const bool pkaChecksumCompression = g_game.isPokeAllianceProtocol() &&
         m_checksumEnabled && m_xteaEncryptionEnabled;
     const bool pkaChecksumZero = pkaChecksumCompression && m_inputMessage->peekU32() == 0;
     if (m_sequencedPackets) {

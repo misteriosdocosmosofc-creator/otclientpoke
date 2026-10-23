@@ -30,6 +30,9 @@
 #include "map.h"
 #include "protocolgame.h"
 #include "protocolcodes.h"
+#include "pkaprotocol.h"
+#include "framework/core/configmanager.h"
+#include "framework/core/resourcemanager.h"
 #include "thingtype.h"
 #include "thingtypemanager.h"
 #include "tile.h"
@@ -98,6 +101,28 @@ void Game::resetGameStates()
     m_vips.clear();
     m_gmActions.clear();
     g_map.resetAwareRange();
+    if (isPokeAllianceProtocol()) {
+        g_map.setAwareRange({ PkaProtocol::MapLeft, PkaProtocol::MapTop,
+                              PkaProtocol::MapRight, PkaProtocol::MapBottom });
+    }
+}
+
+uint8_t Game::getProtocolDiagnostics() const
+{
+    const auto settings = g_configs.getSettings();
+    static const std::string fileLevel = [] {
+        if (g_resources.fileExists("/pka-debug.otml")) {
+            const auto config = g_configs.load("/pka-debug.otml");
+            if (config) return config->getValue("level");
+        }
+        return std::string{};
+    }();
+    auto value = settings ? settings->getValue("protocol-diagnostics") : std::string{};
+    if (value.empty()) value = fileLevel;
+    if (value == "off") return 0;
+    if (value == "records") return 2;
+    if (value == "capture") return 3;
+    return 1; // Lightweight summaries are the default.
 }
 
 void Game::processConnectionError(const std::error_code& ec)
@@ -623,6 +648,8 @@ void Game::loginWorld(const std::string_view account, const std::string_view pas
     m_protocolGame = std::make_shared<ProtocolGame>();
     if (!recordTo.empty()) {
         m_protocolGame->setRecorder(std::make_shared<PacketRecorder>(recordTo));
+    } else if (isPokeAllianceProtocol() && getProtocolDiagnostics() >= 3) {
+        m_protocolGame->setRecorder(std::make_shared<PacketRecorder>("pka-session.cam"));
     }
     m_protocolGame->login(account, password, worldHost, static_cast<uint16_t>(worldPort), characterName, authenticatorToken, sessionKey);
     m_characterName = characterName;
@@ -646,6 +673,7 @@ void Game::playRecord(const std::string_view& file)
 
     m_localPlayer = std::make_shared<LocalPlayer>();
     m_localPlayer->setName("Player");
+    m_localPlayer->onCreate();
 
     m_protocolGame = std::make_shared<ProtocolGame>();
     m_protocolGame->playRecord(packetPlayer);

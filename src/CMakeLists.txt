@@ -556,6 +556,11 @@ endif()
 
 add_library(otclient_core STATIC ${SOURCE_FILES})
 
+option(OTCLIENT_ITERATION_BUILD "Isolate frequently edited protocol code from unity batches" OFF)
+if(OTCLIENT_ITERATION_BUILD)
+  set_source_files_properties(client/protocolgameparse.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+endif()
+
 target_link_libraries(otclient_core PRIVATE unofficial::inih::inireader)
 
 if(NOT MSVC AND CMAKE_INTERPROCEDURAL_OPTIMIZATION MATCHES "^(ON|1|TRUE)$")

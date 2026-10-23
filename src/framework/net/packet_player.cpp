@@ -24,6 +24,7 @@
 
 #include "framework/core/clock.h"
 #include "framework/core/eventdispatcher.h"
+#include "framework/core/resourcemanager.h"
 
 PacketPlayer::~PacketPlayer()
 {
@@ -33,11 +34,9 @@ PacketPlayer::~PacketPlayer()
 
 PacketPlayer::PacketPlayer(const std::string_view& file)
 {
-#ifdef ANDROID
-    std::ifstream f(std::string("records/") + std::string(file));
-#else
     std::ifstream f(std::filesystem::path("records") / file);
-#endif
+    if (!f.is_open())
+        f.open(std::filesystem::path(g_resources.getWriteDir()) / "records" / file);
     if (!f.is_open())
         return;
     std::string type, packetHex;

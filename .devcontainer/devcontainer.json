@@ -1,0 +1,7 @@
+{
+  "name": "OTClient Android development",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "remoteUser": "codespace",
+  "hostRequirements": { "cpus": 4, "memory": "16gb", "storage": "32gb" },
+  "postCreateCommand": "bash tools/android-dev/bootstrap-android.sh"
+}
