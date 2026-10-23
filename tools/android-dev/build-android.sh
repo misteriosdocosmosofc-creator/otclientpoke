@@ -51,5 +51,25 @@ PY
 cd android
 # Do not run clean: the persistent .cxx and build directories enable incremental builds.
 bash gradlew :app:assembleDebug --build-cache --console=plain "$@"
+# Record provenance outside compiler definitions to avoid rebuilding every object per commit.
+python3 - <<'PY'
+from datetime import datetime, timezone
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+apk = Path('app/build/outputs/apk/debug/app-debug.apk')
+info = {
+    'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+    'trackedChanges': subprocess.run(['git', 'diff', '--quiet', 'HEAD']).returncode != 0,
+    'abis': os.environ['OTCLIENT_ANDROID_ABIS'],
+    'sha256': hashlib.file_digest(apk.open('rb'), 'sha256').hexdigest(),
+    'bytes': apk.stat().st_size,
+    'recordedAtUtc': datetime.now(timezone.utc).isoformat(),
+}
+apk.with_name('codespace-build-info.json').write_text(json.dumps(info, indent=2) + '\n')
+print(json.dumps(info))
+PY
 ccache --show-stats
 printf '\nAPK: %s/android/app/build/outputs/apk/debug/app-debug.apk\n' "$OTC_ANDROID_REPO"
