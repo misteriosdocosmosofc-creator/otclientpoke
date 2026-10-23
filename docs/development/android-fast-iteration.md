@@ -138,9 +138,19 @@ Segunda captura PC: 5320 itens/20 criaturas; fim relativo 45089, tambem identico
 Duas capturas Android antes rejeitadas completaram o FullMap offline.
 
 Correcoes comprovadas: area PKA 32x20 em vez de 18x14; campos extras de criatura
-restritos ao subtipo zero; subtipos 1 e 3 sem records; prelude subtipo 4 com sete
-bytes fixos antes do gate opcional. Formatos nao exercitados continuam dependentes
+restritos ao subtipo zero; prelude dos subtipos 1, 3 e 4 com sete bytes fixos
+antes do gate opcional, campo extra apenas para 3/4, depois flag, records e string.
+A interpretacao anterior de que 1/3 omitiam a cauda era incorreta: no PC esses
+subtipos chegam ao prelude por fallthrough. Formatos nao exercitados dependem
 de evidencia adicional; compilar nao prova renderizacao no aparelho.
+
+Movimento: os tres bytes U16/U8 no inicio de cada tile sao metadados do Tile,
+nao um item ground. O PC armazena os campos e insere a lista real em stack zero.
+Um item artificial deslocava todas as referencias de movimento em uma posicao.
+A sessao de 23/10/2026 registrou esse desvio e uma cauda de criatura subtipo 1
+incompleta no mapa sul (0x67), provocando erro local de protocolo 71.
+Com o leitor corrigido, as 29 faixas de mapa da sessao passaram offline, inclusive
+o pacote antes rejeitado; FullMap/bootstrap novos e a referencia PC tambem passam.
 
 ## Checkpoint antes do primeiro APK no Codespace
 
