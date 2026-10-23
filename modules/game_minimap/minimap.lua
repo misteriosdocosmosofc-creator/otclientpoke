@@ -134,6 +134,7 @@ function mapController:onGameStart()
 end
 
 function mapController:onGameEnd()
+    closeFullscreen()
     -- Save Map
     if otmm then
         g_minimap.saveOtmm('/minimap.otmm')
@@ -145,6 +146,7 @@ function mapController:onGameEnd()
 end
 
 function mapController:onTerminate()
+    closeFullscreen()
     if iconTopMenu then
         iconTopMenu:destroy()
         iconTopMenu = nil
@@ -200,6 +202,17 @@ function fullscreen()
     oldPos = minimapWidget:getCameraPosition()
     minimapWidget:setZoom(zoom)
     minimapWidget:setCameraPosition(pos)
+    local closeButton = minimapWidget:getChildById('closeFullMapButton')
+    closeButton:setVisible(minimapWidget.fullMapView)
+    if minimapWidget.fullMapView then
+        closeButton:raise()
+    end
+end
+
+function closeFullscreen()
+    if fullscreenWidget then
+        fullscreen()
+    end
 end
 
 function upLayer()

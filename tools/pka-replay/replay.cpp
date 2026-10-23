@@ -85,8 +85,8 @@ int main(int argc, char** argv) {
                         const auto look = msg.getU16();
                         if (look) {
                             for (int i = 0; i < 5; ++i) msg.getU8();
-                            PkaProtocol::readOutfitExtension(msg);
                         } else msg.getU16();
+                        PkaProtocol::readOutfitExtension(msg, look != 0);
                         const auto tail = PkaProtocol::readCreatureTail(msg, thingId);
                         ++creatures;
                         span("creature", start, tail.subtype);
@@ -152,8 +152,8 @@ int main(int argc, char** argv) {
                         const auto look = msg.getU16();
                         if (look) {
                             for (int i=0;i<5;++i) msg.getU8();
-                            PkaProtocol::readOutfitExtension(msg);
                         } else msg.getU16();
+                        PkaProtocol::readOutfitExtension(msg, look != 0);
                         break;
                     }
                     case 0xb4: {

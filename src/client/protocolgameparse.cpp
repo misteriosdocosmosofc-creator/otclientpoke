@@ -4258,6 +4258,7 @@ Outfit ProtocolGame::getOutfit(const InputMessagePtr& msg, const bool parseMount
     Outfit outfit;
 
     uint16_t lookType = g_game.getFeature(Otc::GameLooktypeU16) ? msg->getU16() : msg->getU8();
+    const bool hasCreatureLook = lookType != 0;
 
     if (lookType != 0) {
         outfit.setCategory(ThingCategoryCreature);
@@ -4266,9 +4267,6 @@ Outfit ProtocolGame::getOutfit(const InputMessagePtr& msg, const bool parseMount
         const uint8_t legs = msg->getU8();
         const uint8_t feet = msg->getU8();
         const uint8_t addons = g_game.getFeature(Otc::GamePlayerAddons) ? msg->getU8() : 0;
-
-        if (g_game.isPokeAllianceProtocol())
-            PkaProtocol::readOutfitExtension(*msg);
 
         if (!g_things.isValidDatId(lookType, ThingCategoryCreature)) {
             g_logger.traceError("invalid outfit looktype {}", lookType);
@@ -4295,6 +4293,9 @@ Outfit ProtocolGame::getOutfit(const InputMessagePtr& msg, const bool parseMount
             outfit.setAuxId(lookTypeEx);
         }
     }
+
+    if (g_game.isPokeAllianceProtocol())
+        PkaProtocol::readOutfitExtension(*msg, hasCreatureLook);
 
     if (g_game.getFeature(Otc::GamePlayerMounts) && parseMount) {
         const uint16_t mount = msg->getU16();

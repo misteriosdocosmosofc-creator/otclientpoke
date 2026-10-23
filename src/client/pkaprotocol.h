@@ -15,10 +15,13 @@ void readLoginExtension(Reader& msg)
 }
 
 template<class Reader>
-void readOutfitExtension(Reader& msg)
+void readOutfitExtension(Reader& msg, bool hasCreatureLook)
 {
-    msg.getU64(); msg.getU64();
-    msg.getString(); // Outfit extension bit 42 is active in the captured PKA profile.
+    if (hasCreatureLook) {
+        msg.getU64(); msg.getU64();
+    }
+    // PC feature bit 42 is read after both the creature and lookTypeEx branches.
+    msg.getString();
 }
 
 struct PlayerStats {

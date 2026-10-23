@@ -19,6 +19,18 @@ PhantomMiniWindow
       anchors.fill: parent
       margin: 1
 
+      Button
+        id: closeFullMapButton
+        anchors.top: parent.top
+        anchors.right: parent.right
+        margin-top: 10
+        margin-right: 10
+        size: 42 36
+        text: X
+        tooltip: tr('Close')
+        visible: false
+        @onClick: closeFullscreen()
+
   UIWidget
     id: layersPanel
     size: 20 68

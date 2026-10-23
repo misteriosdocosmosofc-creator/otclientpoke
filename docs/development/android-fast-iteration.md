@@ -88,6 +88,31 @@ normal para uma tentativa manual. O serializador de login continua reproduzindo
 exatamente os blocos XTEA/RSA da fixture PC e os quatro campos preauth ativos
 conferem com a captura autenticada. A causa do encerramento real segue pendente.
 
+### Outfit com lookType zero
+
+Uma reentrada posterior trouxe outro FullMap: centro (3961,3859,6), 133 criaturas,
+incluindo um Kecleon com lookType zero. O leitor pulava a string de extensao
+nesse ramo e perdia o alinhamento, gerando erro 71. A funcao DX atual
+`0x140797580..0x140797bf3` confirma que os dois U64 pertencem ao ramo de criatura,
+mas a string controlada pelo bit 42 fica depois dos dois ramos de lookType.
+O helper compartilhado recebe o tipo de outfit original, antes da validacao DAT.
+
+A mesma captura falha sem a correcao no cursor relativo 19411; corrigida, termina
+o mapa em 29375 (1746 tiles descritos, 3374 pulados, 2576 itens, 133 criaturas) e
+toda a cauda/bootstrap em 60499, exatamente o fim do buffer. As capturas Android
+anterior (fim 43636) e PC (fim 45372, 4443 tiles/5318 itens/23 criaturas) mantem
+seus limites. Fixtures permanecem privadas.
+
+### Minimap no celular
+
+O modo ampliado do minimapa precisa ter fechamento por toque. O atalho Escape
+isolado deixava o usuario sem controle visivel no Android. O botao X fica visivel
+apenas nesse modo; ao fechar, o widget retorna ao painel original. Logout e
+terminacao do modulo tambem restauram o painel antes de salvar/destruir a UI.
+Validacao no aparelho com replay offline: X visivel, toque em (1485,90), retorno
+ao cenario com o cliente ainda online. O roteiro abre o minimapa de proposito;
+isso nao altera a abertura normal nem deve permanecer no rc ativo.
+
 ## Reproducao sem servidor
 
 `tools/pka-replay/replay.cpp` compila com um compilador C++20 comum, sem engine,
