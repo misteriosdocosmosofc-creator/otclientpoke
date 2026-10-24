@@ -4507,6 +4507,7 @@ CreaturePtr ProtocolGame::getCreature(const InputMessagePtr& msg, int type) cons
             shield = tail.shield;
             emblem = tail.emblem;
             unpass = tail.unpass;
+            creatureType = tail.subtype;
             if (tracePkaCreature) {
                 g_logger.info("[pka-creature] type=0x{:04X} subtype={} start={} end={} attributes={} records={}",
                     type, tail.subtype, pkaCreatureStart, msg->getReadPos(), tail.attributeCount, tail.recordCount);
@@ -4611,7 +4612,7 @@ CreaturePtr ProtocolGame::getCreature(const InputMessagePtr& msg, int type) cons
                 creature->setEmblem(emblem);
             }
 
-            if (creatureType > 0) {
+            if (pkaMap860Format || creatureType > 0) {
                 creature->setType(creatureType);
             }
 

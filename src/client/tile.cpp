@@ -33,6 +33,7 @@
 #include "mapview.h"
 #include "thing.h"
 #include "pkamovementtrace.h"
+#include "protocolcodes.h"
 #include "uimap.h"
 #include "framework/core/clock.h"
 #include "framework/core/eventdispatcher.h"
@@ -364,9 +365,22 @@ void Tile::addThing(const ThingPtr& thing, int stackPos)
 
     setThingFlag(thing);
 
-    if (size > g_gameConfig.getTileMaxThings()) {
-        PkaMovementTrace::Reason traceReason("overflow");
-        removeThing(m_things[g_gameConfig.getTileMaxThings()]);
+    const auto maxThings = g_gameConfig.getTileMaxThings();
+    if (g_game.isPokeAllianceProtocol()) {
+        // The PKA client checks the count after insertion and removes the last
+        // eligible thing, preserving its local player and own summons.
+        if (m_things.size() > maxThings) {
+            const auto it = std::find_if(m_things.rbegin(), m_things.rend(), [](const ThingPtr& candidate) {
+                return !candidate->isLocalPlayer() &&
+                    !(candidate->isCreature() && candidate->static_self_cast<Creature>()->getType() == Proto::CreatureTypeSummonOwn);
+            });
+            if (it != m_things.rend()) {
+                PkaMovementTrace::Reason traceReason("overflow");
+                removeThing(*it);
+            }
+        }
+    } else if (size > maxThings) {
+        removeThing(m_things[maxThings]);
     }
 
     updateThingStackPos();
