@@ -269,7 +269,19 @@ function WalkController:onGameStart()
     })
 
     modules.game_interface.getRootPanel().onFocusChange = stopSmartWalk
-    modules.game_joystick.addOnJoystickMoveListener(function(dir) g_game.walk(dir) end)
+    modules.game_joystick.addOnJoystickMoveListener(function(dir)
+        if not g_game.isPokeAllianceProtocol() then
+            return g_game.walk(dir)
+        end
+
+        -- The joystick polls every 20ms. Use the same prediction/collision
+        -- path as keyboard movement, and do not queue a step after release.
+        local player = g_game.getLocalPlayer()
+        if player and player:canWalk() then
+            return walk(dir)
+        end
+        return false
+    end)
 
     if not g_game.isOfficialTibia() then
         g_game.enableFeature(GameForceFirstAutoWalkStep)

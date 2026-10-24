@@ -97,3 +97,22 @@ gated to PKA; standard tile transforms retain their original layout. Shared
 helper cases include mode/count boundaries and truncated headers. The C++
 replay supports transform replacements containing an item or short creature
 record `0x63`; use the native probe for complete session/state coverage.
+
+The updated DX mode-map initializer `0x14076aa80` adds wire 31 -> Loot (29)
+and wire 52 -> Attention (52) to its 840-860 profile. Its text reader
+`0x140785ed0` takes the ordinary U16-length string path for both. The real
+mode-52 failure is a complete 117-byte packet, not an extra framing field.
+`generate_text_messages.py --session <private.cam> --output <private-dir>`
+copies the received session with timestamps accelerated eightfold and appends
+empty/nonempty messages of both modes followed by an inventory sentinel.
+It stores the original text as hex because captured text can contain Latin-1
+bytes. Stage its CAM/manifest with `text_messages_android.lua`; the native
+hook checks the exact original bytes, both empty strings, both message modes,
+the following inventory item/subtype, and that the player remains online.
+
+Run `lua tools/pka-replay/test_joystick.lua` from the repository root with
+Lua 5.1, LuaJIT, or LuaJIT's `src/host/minilua`. The fixture loads the production
+walking module and checks that PKA joystick input observes prediction, pending
+confirmation, locks, collision and server-walk handling, without queuing a step
+after release. Non-PKA joystick behavior is checked separately. This test uses
+mock player state; transient movement stalls still require real-device checks.

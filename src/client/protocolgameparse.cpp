@@ -3215,7 +3215,15 @@ void ProtocolGame::parseRuleViolationLock(const InputMessagePtr&) { g_game.proce
 void ProtocolGame::parseTextMessage(const InputMessagePtr& msg)
 {
     const uint8_t code = msg->getU8();
-    const Otc::MessageMode mode = Proto::translateMessageModeFromServer(code);
+    auto mode = Proto::translateMessageModeFromServer(code);
+    if (g_game.isPokeAllianceProtocol()) {
+        // DX FUN_14076aa80 adds these mappings to the 840-860 profile.
+        // Both take the ordinary U16-length string path in FUN_140785ed0.
+        if (code == 0x1f)
+            mode = Otc::MessageLoot;
+        else if (code == 0x34)
+            mode = Otc::MessageAttention;
+    }
     std::string text;
 
     g_logger.debug("[ProtocolGame::parseTextMessage] code: {}, mode: {}", code, std::to_string(mode));

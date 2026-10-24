@@ -419,3 +419,35 @@ intervalo acima de 50ms; a primeira teve tres acima de 50ms. Sao amostras de
 anterior. Memoria/top/thermal brutos preservados com as amostras privadas.
 Nenhuma opcao de FPS, antialiasing ou iluminacao foi alterada. Cliente normal
 permaneceu aberto, sem hook de replay, com coleta ativa ao concluir o teste.
+
+## Falha posterior de texto e controle de caminhada (24/10/2026)
+
+A mesma sessao1282 continuou alem da janela de dez minutos e caiu aos
+1193630ms (19min53,6s). Primeira falha as09:01:41.801: opcode0xB4, modo52,
+parseTextMessage desconhecido; erro71 e disconnect vieram a seguir, relayEOF
+apenas as09:01:42.763. CAM privada de7302528bytes/8639recebimentos preservada
+em `codespace-1282a1051/live-20261024-090510/`. Esse resultado nao invalida a
+correcao0x6B, mas demonstra outra forma de protocolo ainda ausente.
+
+Comparacao com DX atualizado: `FUN_14076aa80`, no ramo840-860, grava a entrada
+Loot29 -> wire31 e Attention52 -> wire52; `FUN_14076b1e0` inverte esse mapa na
+recepcao. `FUN_140785ed0` consome uma stringU16 para ambos. O pacote real tem
+117bytes: opcodeU16, modoU8=52, tamanhoU16=112, texto completo, fim exato.
+Parser de texto agora reconhece esses dois modos somente no perfil PKA.
+
+Usuario relatou bloqueio transitorio ao atravessar certas pessoas, seguido de
+retomada e aparente correcao de posicao. Joystick chamava g_game.walk diretamente
+a cada20ms, sem passar pelos controles de caminhada usados pelo teclado.
+Captura registrou5903comandos, pico36/s, 2158intervalos<=30ms, 30FullMaps;
+nao houve opcodeCancelWalk/WalkWait registrado. Novo listener PKA usa o caminho
+do teclado quando canWalk permite e evita deixar passo pendente apos soltar.
+Isso corrige o desvio de controle observado no codigo; a causa completa do
+sintoma e a eficacia no jogo ainda exigem verificacao real.
+
+Testes locais: controle antigo rejeita modo52 no cursor3; leitor novo consome
+os117bytes e o lote72bytes com textos vazios/modos31e52 e sentinela seguintes.
+Suite de187helpers/9395prefixos truncados continua passando. FullMaps terminam
+em45372(PC),29375(reentrada),44986(Android run39878774090), sem mudar os limites
+medidos dessas fixtures. Mock com o modulo Lua de producao passou11checagens
+de previsao, confirmacao, bloqueio, colisao, server-walk, soltar controle e
+preservacao de outros perfis. Nova validacao nativa/real ainda pendente.
