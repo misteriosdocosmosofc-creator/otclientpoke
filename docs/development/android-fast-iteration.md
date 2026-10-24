@@ -495,3 +495,23 @@ o tile inicial com13objetos e a presenca real do personagem no tile final, alem
 de posicao/online/canWalk. Validacao do APK com a correcao nativa e novo teste de
 movimento real ainda pendentes. Os67alvos ausentes remanescentes nao estao
 explicados por esse limite e seguem como lacuna separada.
+
+APK candidato b4126ad75db1fd944123cbf55c86d5f58012d7a2 compilado no Codespace,
+instalado e conferido: SHA-256
+`93ff1f52c61a28eeb257f9aeadff96430240c1740fb906de4501ed98ee7fafc4`,
+assinatura persistente preservada. Controle negativo bc8b com o novo hook
+registrou probe=false/inTile=false/passed=false, como esperado.
+
+ATENCAO: validacao final b4126 NAO PASSOU. Com setup original max-things10 e o
+minimo PKA no codigo, o hook confirmou probe=true (13objetos), mas inTile=false,
+online=true e passed=false as11:18:13.291. Foram66correcoes forcadas e158alvos
+ausentes, sem excecao de parse nem aviso de excesso. O experimento anterior
+com setup16 e hook de rastreamento diferente nao basta para validar este APK.
+E necessario comparar as mesmas condicoes/hook e rastrear o primeiro desvio.
+Usuario acrescentou que um Pokemon ficou sobreposto ao personagem e parecia
+acompanha-lo, sugerindo investigar identidade/pilha/posicao das criaturas.
+
+Usuario pediu pausa para compactacao apos esta etapa. App fechado, sem coletor
+ativo; rc/config/setup originais restaurados e conferidos por SHA-256. Resultados
+privados crowded-before/crowded-after/result.json e crowded-tile-comparison.json.
+Nao houve nova entrada real no APK b4126 e nao considerar o movimento corrigido.
