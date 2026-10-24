@@ -76,3 +76,24 @@ These engine probes establish metadata and parser coverage; they do not render
 every phase/pattern of every definition on the GPU. Real connection, movement,
 visual checks, and minimap interaction remain separate validation steps. Keep
 temporary hooks out of the normal game startup.
+
+`generate_transforms.py --session <private.cam> --output <private-dir>` retains
+all received messages from the long session ending in the measured 16-byte
+`0x6b` creature transform. It accelerates timestamps eightfold, then appends
+empty, one-record and three-record batches, non-batch modes 2/255, and an
+inventory sentinel. A missing mapped thing in the batch checks that later
+records still get consumed. Stage its CAM and manifest with
+`transform_android.lua` and use the `[coverage-replay] complete` marker.
+The hook checks the final real creature's position/direction and the batch's
+local-player direction and sentinel, while remaining online. It restores normal
+startup/settings through the same probe runner. Timings are accelerated, so this
+is a state/parser regression, not a real-time stability or FPS benchmark.
+
+Original DX `0x140778540..0x140778a1f` reads a U8 mode before the mapped
+thing/replacement pair. Mode 1 adds a U16 count and repeats the pair; all other
+modes read one pair. Omitting the mode shifted the position and thing ID,
+leaving four bytes misread as opcode `0x2b` in the captured failure. The fix is
+gated to PKA; standard tile transforms retain their original layout. Shared
+helper cases include mode/count boundaries and truncated headers. The C++
+replay supports transform replacements containing an item or short creature
+record `0x63`; use the native probe for complete session/state coverage.

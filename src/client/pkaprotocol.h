@@ -7,6 +7,14 @@
 // Unknown fields keep their measured types instead of guessing their meaning.
 namespace PkaProtocol {
 template<class Reader>
+uint16_t readTileTransformCount(Reader& msg)
+{
+    // DX 0x140778540: mode 1 carries a U16 batch count; all other
+    // modes carry one mapped thing/replacement pair.
+    return msg.getU8() == 1 ? msg.getU16() : 1;
+}
+
+template<class Reader>
 void readLoginExtension(Reader& msg)
 {
     msg.getU8(); msg.getU8(); msg.getU16(); msg.getString();

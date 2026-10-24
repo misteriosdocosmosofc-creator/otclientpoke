@@ -1,5 +1,14 @@
 # Ciclo de desenvolvimento Android
 
+Regressao da sessao longa de 23/10: o APK426 entrou e ficou quase oito minutos
+online, mas um transform `0x6b` provocou erro local71 antes do EOF do relay.
+O DX atualizado `0x140778540..0x140778a1f` le primeiro U8modo; modo1 acrescenta
+U16contagem e repete pares mappedThing/getThing. Outros modos leem um par.
+O Android omitia o modo, deslocava posicao/ID e interpretava o fim como opcode.
+Preservar a CAM inteira; `generate_transforms.py` e `transform_android.lua`
+reproduzem os recebimentos e conferem tambem lotes/vazios/alvo ausente.
+Esse replay acelera tempo e valida estado/protocolo, sem medir FPS real.
+
 ## Ambiente e comando
 
 Codespace: `otc-android-build-p7j4q4rw7j762969r`, repo `otclientpoke`, branch

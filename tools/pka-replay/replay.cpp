@@ -112,6 +112,17 @@ int main(int argc, char** argv) {
                 const auto start = msg.pos;
                 const auto opcode = msg.getU16();
                 switch (opcode) {
+                    case 0x6b: {
+                        const auto count = PkaProtocol::readTileTransformCount(msg);
+                        for (unsigned i = 0; i < count; ++i) {
+                            if (msg.getU16() == 0xffff) msg.getU32();
+                            else { msg.getU16(); msg.getU8(); msg.getU8(); }
+                            if (msg.peekU16() == 0x63) {
+                                msg.getU16(); msg.getU32(); msg.getU8();
+                            } else readItem();
+                        }
+                        break;
+                    }
                     case 0x83:
                         msg.getU16(); msg.getU16(); msg.getU8();
                         PkaProtocol::readEffects(msg);

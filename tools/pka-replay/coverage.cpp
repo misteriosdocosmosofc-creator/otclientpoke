@@ -37,6 +37,10 @@ void consume(Reader& msg, uint8_t kind, uint16_t param) {
         }
         case 2: PkaProtocol::readItemAttributes(msg, param); break;
         case 3: PkaProtocol::readEffects(msg); break;
+        case 4:
+            if (PkaProtocol::readTileTransformCount(msg) != param)
+                throw std::runtime_error("decoded transform count differs from fixture");
+            break;
         default: throw std::runtime_error("unknown fixture kind");
     }
 }

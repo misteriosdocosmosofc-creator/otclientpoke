@@ -18,6 +18,10 @@ def string(value): return u16(len(value)) + value
 
 
 def cases():
+    for mode in (0, 2, 255):
+        yield 4, 1, u8(mode)
+    for count in (0, 1, 2, 65535):
+        yield 4, count, u8(1) + u16(count)
     for has_look, text in product((0, 1), (b'', b'outfit-extension', bytes(range(256)))):
         yield 0, has_look, (u64(0x1020304050607080) + u64(0x8172635445362718) if has_look else b'') + string(text)
     for kind, subtype, optional, count, text in product((0x61, 0x62), range(5), (0, 1, 2), (0, 2), (b'', b'tail-extension')):

@@ -1697,23 +1697,27 @@ void ProtocolGame::parseTileAddThing(const InputMessagePtr& msg)
 
 void ProtocolGame::parseTileTransformThing(const InputMessagePtr& msg)
 {
-    const auto& thing = getMappedThing(msg);
-    const auto& newThing = getThing(msg);
+    const uint16_t count = g_game.isPokeAllianceProtocol()
+        ? PkaProtocol::readTileTransformCount(*msg) : 1;
+    for (unsigned i = 0; i < count; ++i) {
+        const auto& thing = getMappedThing(msg);
+        const auto& newThing = getThing(msg);
 
-    if (!thing) {
-        g_logger.traceError("ProtocolGame::parseTileTransformThing: no thing");
-        return;
+        if (!thing) {
+            g_logger.traceError("ProtocolGame::parseTileTransformThing: no thing");
+            continue;
+        }
+
+        const auto pos = thing->getServerPosition();
+        const int stackPos = thing->getStackPos();
+
+        if (!g_map.removeThing(thing)) {
+            g_logger.traceError("ProtocolGame::parseTileTransformThing: unable to remove thing");
+            continue;
+        }
+
+        g_map.addThing(newThing, pos, stackPos);
     }
-
-    const auto& pos = thing->getServerPosition();
-    const int stackPos = thing->getStackPos();
-
-    if (!g_map.removeThing(thing)) {
-        g_logger.traceError("ProtocolGame::parseTileTransformThing: unable to remove thing");
-        return;
-    }
-
-    g_map.addThing(newThing, pos, stackPos);
 }
 
 void ProtocolGame::parseTileRemoveThing(const InputMessagePtr& msg) const
