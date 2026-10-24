@@ -386,3 +386,32 @@ UIWidget
 
     $disabled:
       image-clip: 0 27 9 27
+
+  Panel
+    id: mobilePanelControls
+    anchors.left: gameBottomActionPanel.left
+    anchors.top: gameTopPanel.bottom
+    margin-top: 8
+    size: 196 32
+    visible: false
+    phantom: true
+    focusable: false
+
+    Button
+      id: toggleHotkeys
+      anchors.left: parent.left
+      anchors.top: parent.top
+      size: 100 32
+      text: Hotkeys [-]
+      focusable: false
+      @onClick: toggleMobileHotkeys()
+
+    Button
+      id: toggleChatPanel
+      anchors.left: toggleHotkeys.right
+      anchors.top: parent.top
+      margin-left: 6
+      size: 90 32
+      text: Chat [-]
+      focusable: false
+      @onClick: toggleMobileChat()

@@ -2510,6 +2510,11 @@ function returnChat()
 end
 
 function extendedViewHide(bool)
+    if g_platform.isMobile() then
+        modules.game_interface.setMobileChatCollapsed(bool)
+        consolePanel:getChildById('extendedViewHide'):setChecked(bool)
+        return
+    end
     if bool then
         gameBottomPanel:hide()
         createButtonChat()

@@ -47,6 +47,46 @@ local mobileConfig = {
     mobileHeightShortcuts = 0
 }
 local isExtendedViewActive = false
+local mobileHotkeysCollapsed = false
+local mobileChatCollapsed = false
+
+-- These controls live outside both panels, so reopening never depends on a
+-- widget inside the hidden chat or hotkey bar. Keep action assignments intact.
+function applyMobilePanelVisibility()
+    if not g_platform.isMobile() or not gameRootPanel then return end
+    local controls = gameRootPanel:getChildById('mobilePanelControls')
+    controls:show()
+    controls:raise()
+    controls.toggleHotkeys:setText(mobileHotkeysCollapsed and 'Hotkeys [+]' or 'Hotkeys [-]')
+    controls.toggleChatPanel:setText(mobileChatCollapsed and 'Chat [+]' or 'Chat [-]')
+    gameBottomActionPanel:setVisible(not mobileHotkeysCollapsed)
+    gameRootPanel:getChildById('lockPanel'):setVisible(not mobileHotkeysCollapsed)
+    gameBottomPanel:setVisible(not mobileChatCollapsed)
+    bottomSplitter:setVisible(not (mobileHotkeysCollapsed and mobileChatCollapsed))
+    local console = gameBottomPanel:getChildById('consolePanel')
+    if console then
+        console:getChildById('extendedViewHide'):setChecked(mobileChatCollapsed)
+    end
+end
+
+function toggleMobileHotkeys()
+    mobileHotkeysCollapsed = not mobileHotkeysCollapsed
+    g_settings.set('mobile-hotkeys-collapsed', mobileHotkeysCollapsed)
+    g_settings.save()
+    applyMobilePanelVisibility()
+end
+
+function setMobileChatCollapsed(collapsed)
+    mobileChatCollapsed = collapsed
+    g_settings.set('mobile-chat-collapsed', collapsed)
+    g_settings.save()
+    applyMobilePanelVisibility()
+    if collapsed then gameMapPanel:focus() end
+end
+
+function toggleMobileChat()
+    setMobileChatCollapsed(not mobileChatCollapsed)
+end
 
 -- Default width of the side panels declared on 'GameSidePanel' (gameinterface.otui).
 local SIDE_PANEL_WIDTH = 176
@@ -328,6 +368,8 @@ function show()
     logoutButton:setTooltip(tr('Logout'))
 
     if g_platform.isMobile() then
+        mobileHotkeysCollapsed = g_settings.getBoolean('mobile-hotkeys-collapsed', false)
+        mobileChatCollapsed = g_settings.getBoolean('mobile-chat-collapsed', false)
         mobileConfig.mobileWidthJoystick = modules.game_joystick.getPanel():getWidth()
         mobileConfig.mobileWidthShortcuts = modules.game_shortcuts.getPanel():getWidth()
         mobileConfig.mobileHeightJoystick = modules.game_joystick.getPanel():getHeight()
@@ -2021,6 +2063,7 @@ function applyExtendedViewLayout(extendedView)
         modules.game_inventory.extendedView(extendedView)
         modules.client_topmenu.extendedView(extendedView)
         modules.game_mainpanel.toggleExtendedViewButtons(extendedView)
+        applyMobilePanelVisibility()
     end)
 end
 
