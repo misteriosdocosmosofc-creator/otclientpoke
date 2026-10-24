@@ -331,10 +331,12 @@ void Proxy::onSent(const std::error_code& ec, const std::size_t bytes_transferre
     }
     m_packetsSent += 1;
     m_bytesSent += static_cast<int>(bytes_transferred);
+#ifdef PROXY_DEBUG
     if (bytes_transferred > 18) {
         g_logger.info("[proxy-debug] socket write complete host={} bytes={} queuedPackets={}", m_host,
                       bytes_transferred, m_sendQueue.size());
     }
+#endif
     m_sendQueue.pop_front();
     if (!m_sendQueue.empty()) {
         async_write(m_socket, asio::buffer(m_sendQueue.front()->data(), m_sendQueue.front()->size()),
@@ -601,8 +603,10 @@ void Session::onPacket(const ProxyPacketPtr& packet)
         std::copy(packet->begin(), packet->end(), newPacket->begin() + 14);
 
         m_proxySendQueue[packetId] = newPacket;
+#ifdef PROXY_DEBUG
         g_logger.info("[proxy-debug] session={} queued client packetId={} payloadBytes={} framedBytes={} proxies={}",
                       m_id, packetId, packet->size(), newPacket->size(), m_proxies.size());
+#endif
         for (auto& proxy : m_proxies) {
             proxy->send(newPacket);
         }

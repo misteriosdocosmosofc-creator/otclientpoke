@@ -89,6 +89,7 @@ void SoundManager::init()
 
     refreshProtocolSoundSettings();
     m_itemAmbienceDirty = true;
+    updateDevicePauseState();
 }
 
 void SoundManager::terminate()
@@ -126,6 +127,7 @@ void SoundManager::terminate()
         alcCloseDevice(m_device);
         m_device = nullptr;
     }
+    m_devicePaused = false;
 }
 
 void SoundManager::poll()
@@ -140,6 +142,11 @@ void SoundManager::poll()
         return;
 
     lastUpdate = now;
+
+    // Finish outstanding loads and retire stopped sources, but do not keep
+    // polling a muted device once its pending work has drained.
+    if (!m_audioEnabled && m_streamFiles.empty() && m_sources.empty())
+        return;
 
     ensureContext();
 
@@ -217,6 +224,26 @@ void SoundManager::setAudioEnabled(const bool enable)
     } else {
         m_itemAmbienceDirty = true;
     }
+    updateDevicePauseState();
+}
+
+void SoundManager::updateDevicePauseState()
+{
+    const bool pause = !m_audioEnabled;
+    if (!m_device || m_devicePaused == pause ||
+        alcIsExtensionPresent(m_device, "ALC_SOFT_pause_device") != ALC_TRUE)
+        return;
+
+    // Keep the context and buffers intact so enabling sound is reversible.
+    // Context suspension alone does not stop OpenAL Soft's output mixer.
+    using DeviceControl = void (ALC_APIENTRY *)(ALCdevice*);
+    const auto pauseDevice = reinterpret_cast<DeviceControl>(alcGetProcAddress(m_device, "alcDevicePauseSOFT"));
+    const auto resumeDevice = reinterpret_cast<DeviceControl>(alcGetProcAddress(m_device, "alcDeviceResumeSOFT"));
+    if (!pauseDevice || !resumeDevice)
+        return;
+
+    (pause ? pauseDevice : resumeDevice)(m_device);
+    m_devicePaused = pause;
 }
 
 std::vector<std::string> SoundManager::getAudioDevices()
@@ -259,6 +286,9 @@ bool SoundManager::setAudioDevice(const std::string& deviceName)
             if (alcReopenDeviceSOFT) {
                 if (alcReopenDeviceSOFT(m_device, devName, nullptr) == ALC_TRUE) {
                     m_audioDevice = targetDevice;
+                    // A reopened backend may start running again.
+                    m_devicePaused = false;
+                    updateDevicePauseState();
                     return true;
                 }
                 g_logger.warning(fmt::format("alcReopenDeviceSOFT failed for device '{}'", deviceName));
@@ -300,6 +330,7 @@ void SoundManager::restartAudioDevice(const std::string& targetDevice)
         alcCloseDevice(m_device);
         m_device = nullptr;
     }
+    m_devicePaused = false;
 
     const char* devName = m_audioDevice.empty() ? nullptr : m_audioDevice.c_str();
     m_device = alcOpenDevice(devName);
@@ -327,6 +358,7 @@ void SoundManager::restartAudioDevice(const std::string& targetDevice)
     }
 
     refreshProtocolSoundSettings();
+    updateDevicePauseState();
 }
 
 void SoundManager::preload(std::string filename)

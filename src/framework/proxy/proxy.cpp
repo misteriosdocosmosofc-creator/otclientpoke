@@ -146,7 +146,6 @@ void ProxyManager::send(const uint32_t sessionId, ProxyPacketPtr packet)
         return;
     }
 
-    g_logger.info("[proxy-debug] send accepted session={} bytes={}", sessionId, packet ? packet->size() : 0);
     session->onPacket(packet);
 }
 

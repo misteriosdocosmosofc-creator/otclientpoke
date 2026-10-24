@@ -164,7 +164,6 @@ void Protocol::send(const OutputMessagePtr& outputMessage, bool raw)
 
     if (m_proxy) {
         const auto packet = std::make_shared<ProxyPacket>(outputMessage->getHeaderBuffer(), outputMessage->getWriteBuffer());
-        g_logger.info("[proxy-debug] protocol send session={} framedBytes={}", m_proxy, packet->size());
         g_proxy.send(m_proxy, packet);
         outputMessage->reset();
         return;

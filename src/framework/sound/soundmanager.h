@@ -232,9 +232,11 @@ private:
     SoundSourcePtr createSoundSource(const std::string& name);
     bool loadFromProtobuf(const std::string& directory, const std::string& fileName);
     void restartAudioDevice(const std::string& targetDevice);
+    void updateDevicePauseState();
 
     ALCdevice* m_device{};
     ALCcontext* m_context{};
+    bool m_devicePaused{ false };
     ALuint m_effect;
     ALuint m_effectSlot;
     std::string m_audioDevice;
