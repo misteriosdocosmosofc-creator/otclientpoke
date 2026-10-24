@@ -116,3 +116,19 @@ walking module and checks that PKA joystick input observes prediction, pending
 confirmation, locks, collision and server-walk handling, without queuing a step
 after release. Non-PKA joystick behavior is checked separately. This test uses
 mock player state; transient movement stalls still require real-device checks.
+
+`generate_crowded_movement.py --session <private.cam> --output <private-dir>
+--expected-position X Y Z --probe-tile X Y Z --probe-count N` copies received
+messages at fourfold speed. Use measured coordinates/counts from the private
+capture. Stage the CAM/manifest with `crowded_movement_android.lua`; it checks
+the initial crowded tile count, the final position, membership of the local
+player in that tile, and that walking is possible while online. A matching
+position alone is insufficient: camera fallback can place a player at the
+expected coordinates after it has been discarded from the tile stack.
+
+The PKA profile requires at least 16 things per tile. The standard configured
+limit of 10 clipped received creature stacks, causing later mapped references
+to fail. Original DX `Tile::addThing` at `0x1407c8570` starts overflow handling
+above 16; other profiles retain their configured limit. This regression checks
+a captured session, without claiming complete coverage of custom movement
+opcodes or all original-client overflow exceptions.

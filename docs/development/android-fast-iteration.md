@@ -450,4 +450,48 @@ Suite de187helpers/9395prefixos truncados continua passando. FullMaps terminam
 em45372(PC),29375(reentrada),44986(Android run39878774090), sem mudar os limites
 medidos dessas fixtures. Mock com o modulo Lua de producao passou11checagens
 de previsao, confirmacao, bloqueio, colisao, server-walk, soltar controle e
-preservacao de outros perfis. Nova validacao nativa/real ainda pendente.
+preservacao de outros perfis.
+
+APK bc8b107e8b956ca973501d78aa91dcae7a2e3145 instalado com update e hash
+conferido em 24/10: SHA-256
+`ebf66eef46803c8d781650aac249252d16f8e2ae17e431e743388ec3da0a57de`.
+Modulo ativo `modules/game_walk/walk.lua` sincronizado e verificado por SHA-256.
+Sem nova compilacao, mudanca de iluminacao/antialiasing ou limpeza de dados.
+
+Regressao nativa de texto passou as10:38:54.829 no celular:8639recebimentos
+originais acelerados8x, texto original exato, strings vazias e textos novos
+dos modos31/52, sentinela de inventario869/subtipo21554, online=true.
+Marcador `[coverage-replay] complete passed=true`, zero excecoes de parse,
+protocol_error, modo desconhecido ou FATAL EXCEPTION. Ainda foram registrados
+1286avisos de opcode desconhecido; nao considerar o protocolo completo validado.
+Screenshot inspecionado mostra cenario claro e mensagens sinteticas esperadas.
+Rc/config anteriores ao teste restaurados e conferidos byte a byte; evidencias
+privadas em `asset-coverage-20261023/text-after/`. Cliente normal reaberto com
+coleta de logs. Entrada real e eficacia da mudanca de movimento ainda pendentes.
+
+## Pilhas em tiles com personagens: causa isolada (24/10/2026)
+
+Usuario relatou travamento apenas do proprio personagem perto de outros jogadores,
+seguido de salto de posicao; outros personagens/animacoes continuavam. Na captura
+real bc8b, comandos reduziram para364/pico7por segundo/mediana253ms, sem intervalos
+de30ms ou menos. A amostra posterior de127frames mediu50,26FPS/max49,19ms;
+nao foi simultanea a uma trava e nao exclui pausas ocasionais.
+
+CAM privada de1957recebimentos/249267ms reproduziu offline sem reenviar comandos:
+limite10 gerou71correcoes forcadas,216movimentos sem alvo,127avisos de excesso de
+objetos; personagem terminou na posicao esperada, mas ausente da lista do tile.
+Com a unica alteracao temporaria de max-things para16, mesma CAM terminou com
+zero correcoes forcadas,67movimentos sem alvo,zero avisos de excesso e personagem
+presente no tile. Teste adicional com255 manteve os mesmos67alvos ausentes e zero
+correcoes. Rc/config/setup restaurados byte a byte apos cada teste; nenhum APK
+novo foi necessario para isolar a diferenca. Evidencias privadas: movement-before,
+movement-limit16 e movement-limit255 em asset-coverage-20261023/.
+
+DX atualizado Tile::addThing(1407c8570) inicia tratamento de excesso acima de16;
+o OTC estava configurado para10 e descartava criaturas ainda referenciadas pelo
+servidor. GameConfig agora aplica minimo16 somente ao perfil PKA; demais perfis
+mantem a configuracao existente. Regressao crowded_movement_android.lua verifica
+o tile inicial com13objetos e a presenca real do personagem no tile final, alem
+de posicao/online/canWalk. Validacao do APK com a correcao nativa e novo teste de
+movimento real ainda pendentes. Os67alvos ausentes remanescentes nao estao
+explicados por esse limite e seguem como lacuna separada.

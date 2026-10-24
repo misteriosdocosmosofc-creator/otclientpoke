@@ -21,6 +21,8 @@
  */
 
 #include "gameconfig.h"
+#include "game.h"
+#include "pkaprotocol.h"
 
 #include "framework/core/configmanager.h"
 #include <sstream>
@@ -35,6 +37,15 @@
 GameConfig g_gameConfig;
 
 static constexpr bool LOAD_SETUP = true;
+
+uint8_t GameConfig::getTileMaxThings() const
+{
+    // PKA maps can contain more than the standard ten things per tile. Applying
+    // the vanilla limit discards creatures while later packets still reference
+    // their stack positions, including the local player in crowded tiles.
+    return g_game.isPokeAllianceProtocol() && m_tileMaxThings < PkaProtocol::TileMaxThings
+        ? PkaProtocol::TileMaxThings : m_tileMaxThings;
+}
 
 void GameConfig::init()
 {

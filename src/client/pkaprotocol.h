@@ -6,6 +6,8 @@
 // Wire readers shared by ProtocolGame and the small offline replay executable.
 // Unknown fields keep their measured types instead of guessing their meaning.
 namespace PkaProtocol {
+// Original DX Tile::addThing (1407c8570) starts overflow handling above 16.
+constexpr uint8_t TileMaxThings = 16;
 template<class Reader>
 uint16_t readTileTransformCount(Reader& msg)
 {

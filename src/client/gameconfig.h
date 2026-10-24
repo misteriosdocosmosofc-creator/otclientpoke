@@ -48,7 +48,7 @@ public:
     bool isExtendedViewUI() const { return m_extendedViewUI; }
 
     uint8_t getTileMaxElevation() const { return m_tileMaxElevation; }
-    uint8_t getTileMaxThings() const { return m_tileMaxThings; }
+    uint8_t getTileMaxThings() const;
     uint8_t getTileTransparentFloorViewRange() const { return m_tileTransparentFloorViewRange; }
 
     bool isDrawingInformationByWidget() { return m_drawInformationByWidget; }
