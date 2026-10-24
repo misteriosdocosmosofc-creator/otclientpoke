@@ -57,6 +57,7 @@ def main():
         return value + u8(0)
 
     items = [r for r in rows if r['category'] == 0]
+    outfit_max = max(r['id'] for r in rows if r['category'] == 1)
     fluid = next(r for r in items if r['id'] == 869)
     ground = next(r for r in items if r['id'] == 100)
     save('fluid-width-repro.cam', [(5000, packet(u16(0x78)+u8(4)+item(fluid)+u16(0x78)+u8(5)+item(ground))), (30000, u16(0x1E))])
@@ -67,25 +68,26 @@ def main():
         payload = b''.join(u16(0x78)+u8(4)+item(row, (0, 1, 3)[row['id'] % 3]) for row in batch)
         events.append((timestamp, packet(payload)))
         timestamp += 100
-    for offset in range(1, 3999, 20):
+    for offset in range(1, outfit_max+1, 20):
         payload = b''
-        for look in range(offset, min(offset+20, 3999)):
+        for look in range(offset, min(offset+20, outfit_max+1)):
             payload += u16(0x8E)+u32(player_id)+u16(look)+bytes((1, 2, 3, 4, 0))+u64(0)+u64(0)+string(b'coverage-outfit')
         events.append((timestamp, packet(payload)))
         timestamp += 100
     # Exercise the formerly broken zero-look branch with a nonempty string,
     # then restore a real final look; a later inventory sentinel checks alignment.
     payload = u16(0x8E)+u32(player_id)+u16(0)+u16(0)+string(b'invisible')
-    payload += u16(0x8E)+u32(player_id)+u16(3998)+bytes((1, 2, 3, 4, 0))+u64(0)+u64(0)+string(b'last')
+    payload += u16(0x8E)+u32(player_id)+u16(outfit_max)+bytes((1, 2, 3, 4, 0))+u64(0)+u64(0)+string(b'last')
     payload += u16(0x78)+u8(5)+item(ground)
     events.append((timestamp, packet(payload)))
     timestamp += 100
-    events.append((timestamp+15000, u16(0x1E)))
+    # Keep the replay alive while a slower device drains queued callbacks.
+    events.append((timestamp+600000, u16(0x1E)))
     save('catalog-coverage.cam', events)
-    (args.output/'catalog-manifest.json').write_text(json.dumps(dict(items=len(items), outfits=3998,
+    (args.output/'catalog-manifest.json').write_text(json.dumps(dict(items=len(items), outfits=outfit_max,
         receivedPackets=len(seed)+len(events), lastCatalogMs=timestamp-100, completionMs=timestamp+3000,
-        expectedInventory4=51996, expectedInventory5=100, expectedOutfit=3998), indent=2))
-    print(f'Catalog fixture: {len(items)} item IDs, 3998 outfits, ends at {timestamp} ms.')
+        expectedInventory4=items[-1]['id'], expectedInventory5=100, expectedOutfit=outfit_max), indent=2))
+    print(f'Catalog fixture: {len(items)} item IDs, {outfit_max} outfits, ends at {timestamp} ms.')
 
 
 if __name__ == '__main__':

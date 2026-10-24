@@ -329,6 +329,28 @@ e45372(referenciaPC); bootstrap Android foi consumido ate o fim. Evidencias e
 fixtures ficam privadas em android-artifacts/asset-coverage-20261023/.
 
 Ferramentas/restricoes detalhadas em [pka-replay README](../../tools/pka-replay/README.md).
-Teste Android do subtipo e do catalogo completo no APK corrigido permanece
-pendente neste checkpoint. ADB desconectou apos o teste inicial de metadados;
-rc/config foram restaurados byte a byte e app fechado antes da desconexao.
+APK nativo `4262d8854d042588ecb5f9cc31baf25949574b97`: build incremental2m15s,
+41tarefas/6executadas/35up-to-date;95189805bytes, SHA-256
+`f536727d735cee785ebb8426b12be8c29849f87f92c776f41fdc1a30332994c1`.
+Assinatura persistente conferida e update `adb install -r` passou.
+
+MESMA fixture de liquido na engine: APK143 leu869/subtipo52(0x34), deixou a
+sentinela anterior2854 e registrou opcode falso0x7800. APK426 leu o subtipo
+completo4660(0x1234) e a sentinela100, passando o checkpoint. A validacao visual
+de uma cena exige observacao separada da simples leitura correta do inventario.
+
+Catalogo Android426 validado:59034definicoes/1693400referencias,0divergencias;
+contadores de eventos registraram51897itens distintos e3998outfits distintos,
+ultimo item51996/sentinela100/outfit3998. Nenhuma excecao nem opcode desconhecido
+na fase do catalogo. Roteiro aguarda os marcadores/contagens, pois o primeiro
+prazo fixo80s venceu antes de uma fila com52kcallbacks e logs detalhados terminar.
+Transferencias USB foram agrupadas em TAR com SHA256remoto e backups ja salvos
+podem ser reutilizados. Rc/config originais restaurados byte a byte apos o teste.
+
+Em seguida, a gravacao real antiga de90mensagens terminou na posicao esperada
+(3324,2058,7), online, com screenshot legivel. Essa fase registrou49avisos de
+opcodes ainda nao reconhecidos:0x62F(1),0x606(2),0x634(1),0x703(1),0x114(1),
+0x45(43,apos0xB4). Nao houve excecao de protocolo. Essas lacunas customizadas
+continuam pendentes; nao chamar esse resultado de compatibilidade completa.
+Evidencias privadas em `asset-coverage-20261023/catalog-after-5/`, incluindo
+runtime, screenshot e result.json. Nova conexao real426 ainda em validacao.

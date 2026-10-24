@@ -175,6 +175,9 @@ def audit(dat, spr, records_path=None):
     if records_path:
         records_path.with_name('item-flags.txt').write_text(''.join(
             f"{row['id']} {row['wireFlags']}\n" for row in records if row['category'] == 0), encoding='ascii')
+        records_path.with_name('coverage-expectations.json').write_text(json.dumps(dict(
+            highestIds=counts, itemFlags={str(row['id']): row['wireFlags'] for row in records
+                if row['category'] == 0 and row['wireFlags']})), encoding='utf8')
     return dict(dat=dict(bytes=dat.stat().st_size, sha256=sha256(dat), signature=f'0x{signature:08x}',
                          exactEOF=True, categories=categories),
                 spr=dict(bytes=spr.stat().st_size, sha256=sha256(spr), **sprite_result),

@@ -7,6 +7,7 @@ import argparse
 import hashlib
 from pathlib import Path
 import subprocess
+import tarfile
 import time
 
 
@@ -17,13 +18,29 @@ def main():
     parser.add_argument('--package', default='com.github.otclient')
     parser.add_argument('--hook', type=Path, required=True)
     parser.add_argument('--file', type=Path, action='append', default=[])
+    parser.add_argument('--before-log', type=Path, help='Use an already preserved log snapshot instead of querying logcat before startup')
+    parser.add_argument('--before-cam', type=Path, help='Use an already preserved live CAM instead of transferring it again before an offline probe')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--expected-rc-sha256', required=True)
     parser.add_argument('--marker', default='[asset-probe] complete')
     parser.add_argument('--timeout', type=int, default=360)
+    parser.add_argument('--wait-device-seconds', type=int, default=0)
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     adb = [str(args.adb), '-s', args.serial]
+    if args.wait_device_seconds:
+        deadline = time.monotonic() + args.wait_device_seconds
+        print('Waiting for the USB device before staging any test hook...', flush=True)
+        while True:
+            try:
+                state = subprocess.run(adb + ['get-state'], capture_output=True, timeout=5)
+                if state.returncode == 0 and state.stdout.strip() == b'device':
+                    break
+            except subprocess.TimeoutExpired:
+                pass
+            if time.monotonic() >= deadline:
+                raise RuntimeError('Device did not reconnect; no test hook staged')
+            time.sleep(2)
 
     def run(*command):
         result = subprocess.run(adb + list(command), capture_output=True, timeout=30)
@@ -34,12 +51,24 @@ def main():
     def read(remote):
         return run('exec-out', 'run-as', args.package, 'cat', remote)
 
-    def install(source, remote):
-        stage = '/data/local/tmp/' + source.name
-        run('push', str(source), stage)
-        run('shell', 'run-as', args.package, 'cp', stage, remote)
-        if hashlib.sha256(read(remote)).digest() != hashlib.sha256(source.read_bytes()).digest():
-            raise RuntimeError(f'Device copy verification failed: {source.name}')
+    def install_many(files, name):
+        # Batch a probe into one transfer and verify remote hashes, avoiding
+        # repeated full-file round trips over an unreliable USB connection.
+        archive = args.output / (name + '.tar')
+        expected = {}
+        with tarfile.open(archive, 'w', format=tarfile.USTAR_FORMAT) as sink:
+            for source, remote in files:
+                if not remote.startswith('files/') or '..' in remote.split('/'):
+                    raise ValueError('Unsafe private staging path')
+                sink.add(source, arcname=remote[len('files/'):], recursive=False)
+                expected[remote] = hashlib.sha256(source.read_bytes()).hexdigest()
+        stage = '/data/local/tmp/pka-' + name + '.tar'
+        run('push', str(archive), stage)
+        run('shell', 'run-as', args.package, 'tar', '-xf', stage, '-C', 'files')
+        hashes = run('exec-out', 'run-as', args.package, 'sha256sum', *expected).decode().splitlines()
+        actual = dict((line.split(None, 1)[1].strip(), line.split(None, 1)[0]) for line in hashes)
+        if actual != expected:
+            raise RuntimeError('Device probe batch hash verification failed')
 
     original_rc = read('files/game_data/otclientrc.lua')
     if hashlib.sha256(original_rc).hexdigest() != args.expected_rc_sha256:
@@ -51,16 +80,17 @@ def main():
     rc_backup.write_bytes(original_rc)
     config_backup.write_bytes(original_config)
     # Preserve the live recording and logs before stopping or staging a replay.
-    cam = read('files/.otclient/records/pka-session.cam')
+    cam = args.before_cam.read_bytes() if args.before_cam else read('files/.otclient/records/pka-session.cam')
     if len(cam) > 25 and any(line.startswith(b'< ') for line in cam.splitlines()):
         (args.output/'before-session.cam').write_bytes(cam)
-    (args.output/'before-runtime.txt').write_bytes(run('logcat', '-d', '-t', '1000', '-v', 'threadtime', '-s', 'OTClientMobile'))
+    (args.output/'before-runtime.txt').write_bytes(args.before_log.read_bytes() if args.before_log else
+        run('logcat', '-d', '-t', '1000', '-v', 'threadtime', '-s', 'OTClientMobile'))
     stream = None
     try:
         run('shell', 'am', 'force-stop', args.package)
-        for path in args.file:
-            install(path, 'files/.otclient/' + ('records/' if path.suffix == '.cam' else '') + path.name)
-        install(args.hook, 'files/game_data/otclientrc.lua')
+        staged = [(path, 'files/.otclient/' + ('records/' if path.suffix == '.cam' else '') + path.name) for path in args.file]
+        staged.append((args.hook, 'files/game_data/otclientrc.lua'))
+        install_many(staged, 'probe')
         run('shell', 'am', 'start', '-n', args.package + '/com.otclient.MainActivity')
         pid = ''
         for _ in range(20):
@@ -96,9 +126,9 @@ def main():
         if stream:
             stream.terminate()
             stream.wait(timeout=5)
-        install(rc_backup, 'files/game_data/otclientrc.lua')
         run('shell', 'am', 'force-stop', args.package)
-        install(config_backup, 'files/.otclient/config.otml')
+        install_many([(rc_backup, 'files/game_data/otclientrc.lua'),
+                      (config_backup, 'files/.otclient/config.otml')], 'restore')
         print('Original startup hook and settings restored and verified byte for byte; app closed.', flush=True)
 
 

@@ -53,8 +53,24 @@ ThingTypes, sprite-reference dimensions, and item wire flags. Use
 `fluid_android.lua` with `fluid-width-repro.cam` to check U16 subtype `0x1234`
 and the following inventory sentinel. Use `catalog_android.lua`, staging
 `audit_android.lua`, expectations, catalog manifest and CAM, to perform the
-metadata audit followed by catalog parsing. Pass `--marker '[coverage-replay]
-complete'` for either replay hook (as a single string).
+metadata audit followed by catalog parsing. Also stage the historical
+`movement-repro.cam`: after the catalog sentinels, it checks the real movement
+recording's final position (3324,2058,7). Pass
+`--marker '[coverage-replay] complete'` for either replay hook.
+
+When a prior live log snapshot is already preserved, `--before-log <path>` uses
+that file instead of making another pre-start logcat request. Its timestamp can
+differ from the probe; the probe's own runtime is still streamed separately.
+`--before-cam <path>` likewise reuses a preserved live recording when only
+offline probes have run since that capture. Staging/restoration uses one TAR
+transfer and remote SHA-256 verification. `--wait-device-seconds` can wait for a
+USB reconnection before staging anything.
+
+The native catalog hook counts distinct item/outfit change events and waits for
+both complete ID coverage and final sentinels, rather than assuming the device
+drains every callback at the fixture's nominal timestamp. Per-object tracing is
+reduced temporarily; the original diagnostics setting is restored with the
+original config. A delayed keepalive prevents EOF while the device drains work.
 
 These engine probes establish metadata and parser coverage; they do not render
 every phase/pattern of every definition on the GPU. Real connection, movement,
