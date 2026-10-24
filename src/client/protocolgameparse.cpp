@@ -1630,9 +1630,10 @@ void ProtocolGame::parseMapDescription(const InputMessagePtr& msg)
     g_map.setCentralPosition(pos);
 
     const auto& range = g_map.getAwareRange();
-    g_logger.info("[pka-map-debug] full map position=({}, {}, {}) aware=({}, {}, {}, {}) width={} height={} messageBytes={} readPos={}",
-        pos.x, pos.y, pos.z, range.left, range.top, range.right, range.bottom,
-        range.horizontal(), range.vertical(), msg->getMessageSize(), msg->getReadPos());
+    if (g_game.isPokeAllianceProtocol() && m_diagnosticsLevel > 0)
+        g_logger.info("[pka-map-debug] full map position=({}, {}, {}) aware=({}, {}, {}, {}) width={} height={} messageBytes={} readPos={}",
+            pos.x, pos.y, pos.z, range.left, range.top, range.right, range.bottom,
+            range.horizontal(), range.vertical(), msg->getMessageSize(), msg->getReadPos());
     const auto mapStart = msg->getReadPos();
     setMapDescription(msg, pos.x - range.left, pos.y - range.top, pos.z, range.horizontal(), range.vertical());
     if (g_game.isPokeAllianceProtocol() && m_diagnosticsLevel > 0)
@@ -1751,7 +1752,8 @@ void ProtocolGame::parseCreatureMove(const InputMessagePtr& msg)
     // Without consuming it, it is mistaken for the next server opcode.
     if (g_game.isPokeAllianceProtocol()) {
         const auto movementExtension = msg->getU16();
-        g_logger.info("[pka-move-debug] trailing movement U16={}", movementExtension);
+        if (m_diagnosticsLevel >= 4)
+            g_logger.info("[pka-move-debug] trailing movement U16={}", movementExtension);
     }
 
     if (!thing || !thing->isCreature()) {
@@ -3377,7 +3379,7 @@ void ProtocolGame::parseFloorChangeDown(const InputMessagePtr& msg)
 
 void ProtocolGame::parseOpenOutfitWindow(const InputMessagePtr& msg) const
 {
-    const bool pkaOutfitDebug = g_game.isPokeAllianceProtocol();
+    const bool pkaOutfitDebug = g_game.isPokeAllianceProtocol() && m_diagnosticsLevel >= 2;
     const auto tracePkaOutfit = [&](const char* stage) {
         if (pkaOutfitDebug) {
             g_logger.info("[pka-outfit-debug] stage={} messageBytes={} readPos={} unread={} newOutfit={} mounts={} familiars={} cosmetics={}",

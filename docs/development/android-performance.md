@@ -19,6 +19,9 @@ The following changes reduce work without changing movement or packet layouts:
 - Normal proxy sends no longer enqueue log messages for each packet at the
   protocol/manager layers. Socket/queue tracing requires the existing compile
   time `PROXY_DEBUG` switch. Session events and error reporting remain available.
+- Detailed PKA movement messages require the `movement` diagnostics level;
+  map/outfit traces also respect their diagnostics levels. Reading the appended
+  movement U16 remains unconditional for the PKA wire profile.
 
 These changes do not remove assets, shrink the aware map range, discard effects
 from network parsing, alter walk timing, or modify proxy selection.
