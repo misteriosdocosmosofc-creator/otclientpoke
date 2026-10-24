@@ -120,15 +120,33 @@ mock player state; transient movement stalls still require real-device checks.
 `generate_crowded_movement.py --session <private.cam> --output <private-dir>
 --expected-position X Y Z --probe-tile X Y Z --probe-count N` copies received
 messages at fourfold speed. Use measured coordinates/counts from the private
-capture. Stage the CAM/manifest with `crowded_movement_android.lua`; it checks
+capture. Add `--speed 1` to preserve the original receive timing: speeding up
+delivery changes when deferred disappear/fallback events run and can hide a
+failure even when all bytes and the final position match. Stage the CAM/manifest
+with `crowded_movement_android.lua`; it checks
 the initial crowded tile count, the final position, membership of the local
 player in that tile, and that walking is possible while online. A matching
 position alone is insufficient: camera fallback can place a player at the
 expected coordinates after it has been discarded from the tile stack.
 
-The PKA profile requires at least 16 things per tile. The standard configured
-limit of 10 clipped received creature stacks, causing later mapped references
-to fail. Original DX `Tile::addThing` at `0x1407c8570` starts overflow handling
-above 16; other profiles retain their configured limit. This regression checks
-a captured session, without claiming complete coverage of custom movement
-opcodes or all original-client overflow exceptions.
+The PKA profile requires at least 16 things per tile. Original DX
+`Tile::addThing` at `0x1407c8570` checks the count **after** insertion and drops
+the last eligible thing, preserving the local player and own summons (type 3).
+Checking the old size leaves 17 entries. A captured known creature can then be
+announced at a new tile while still referenced by an old one; cleaning the old
+tile invalidates its new position and later stack references select the wrong
+entity. The PKA creature-tail subtype supplies the type used by this rule.
+Other profiles retain their existing overflow behavior.
+
+For a fixture where map strips track the local player, set
+`protocol-diagnostics` to `movement` in the temporary probe and run:
+
+```text
+python tools/pka-replay/check_movement_trace.py --cam <private.cam> --runtime <private-runtime.txt> --output <private-result.json>
+```
+
+The check matches each bounded native movement record to its CAM bytes and
+checks source positions, the identity selected before camera moves, forced
+updates and the final probe marker. Restore settings after the probe. This
+tests captured paths and does not claim full protocol coverage or real-session
+stability.

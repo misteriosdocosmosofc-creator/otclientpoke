@@ -8,6 +8,32 @@ com a execucao anterior que falhou (66 updates forcados/158 alvos ausentes).
 Portanto, habilitar callbacks nao foi estabelecido como causa da diferenca.
 O movimento ao vivo continua sem validacao desse candidato.
 
+Em tempo original, o APK de diagnostico `1c15a6c78` reproduziu a falha com
+1957 recebimentos: 128/298 movimentos seguidos por faixas de mapa selecionaram
+uma entidade diferente do jogador; houve 11 divergencias entre posicao do
+objeto e origem wire, 158 alvos ausentes e 77 reposicionamentos forcados.
+O controle focado mediu o tile (3956,3866,6) passar de 16 a 17 entradas,
+retendo a criatura que depois reapareceu via AddThing conhecido. A remocao
+posterior da referencia antiga invalidou a posicao do mesmo objeto.
+
+O candidato `b63e10ae9` usa contagem apos inserir, remove a ultima entrada
+elegivel e preserva jogador/own summons, conforme DX `0x1407c8570`. O subtipo
+lido no tail agora alimenta Creature::setType, inclusive zero; o DX grava esse
+mesmo byte em +0x176, consultado na protecao de overflow. O APK foi compilado
+incrementalmente, assinatura/hash conferidos e instalado por update.
+
+Na engine Android, os mesmos 1957 recebimentos com tempo original terminaram
+com posicao final e membership corretos. O tile medido permaneceu com 16
+entradas, e o movimento da criatura conhecida passou a encontrar sua posicao
+valida. Todos os 298 movimentos que precedem faixas de mapa selecionaram o
+jogador correto (antes, 128 errados); reposicionamentos forcados 77 -> 0;
+alvos ausentes 158 -> 60; posicoes de objetos divergentes 11 -> 2. Nao houve
+parse exception. A sonda de estado final passou, mas a auditoria estrita de
+`check_movement_trace.py` continua falhando pelas duas divergencias nao locais;
+nao registrar como protocolo inteiro aprovado. A validacao real do joystick
+continua separada e exige entrada manual do usuario. Rc/config/setup/walk
+foram conferidos por hash apos a restauracao do replay; nenhum grafico alterado.
+
 O nivel temporario `protocol-diagnostics: movement` habilita rastreio nativo
 limitado a 4096 registros por protocolo: pacote/opcode, membership do jogador,
 adicao/remocao local, motivo clean/overflow/move e ID mapeado nos movimentos.
