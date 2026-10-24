@@ -32,6 +32,7 @@
 #include "map.h"
 #include "mapview.h"
 #include "thing.h"
+#include "pkamovementtrace.h"
 #include "uimap.h"
 #include "framework/core/clock.h"
 #include "framework/core/eventdispatcher.h"
@@ -232,6 +233,7 @@ void Tile::drawTop(const Point& dest, const int flags, const bool forceDraw, uin
 
 void Tile::clean()
 {
+    PkaMovementTrace::Reason traceReason("clean");
     if (g_client.getMapWidget() && (m_text || m_timerText)) {
         g_dispatcher.scheduleEvent([tile = static_self_cast<Tile>()] {
             if (g_client.getMapWidget())
@@ -362,8 +364,10 @@ void Tile::addThing(const ThingPtr& thing, int stackPos)
 
     setThingFlag(thing);
 
-    if (size > g_gameConfig.getTileMaxThings())
+    if (size > g_gameConfig.getTileMaxThings()) {
+        PkaMovementTrace::Reason traceReason("overflow");
         removeThing(m_things[g_gameConfig.getTileMaxThings()]);
+    }
 
     updateThingStackPos();
     thing->setPosition(m_position, stackPos);
@@ -372,6 +376,7 @@ void Tile::addThing(const ThingPtr& thing, int stackPos)
     updateElevation(thing, m_drawElevation);
     checkForDetachableThing();
 
+    PkaMovementTrace::mutation("add", *this, thing);
     if (g_game.isTileThingLuaCallbackEnabled())
         callLuaField("onAddThing", thing);
 }
@@ -397,6 +402,7 @@ bool Tile::removeThing(const ThingPtr thing)
 
     markHighlightedThing(Color::white);
 
+    PkaMovementTrace::mutation("remove", *this, thing);
     m_things.erase(it);
 
     m_highlightThingStackPos = -1;

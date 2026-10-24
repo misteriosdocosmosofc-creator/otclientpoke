@@ -31,6 +31,7 @@
 #include "protocolgame.h"
 #include "protocolcodes.h"
 #include "pkaprotocol.h"
+#include "pkamovementtrace.h"
 #include "luavaluecasts_client.h"
 #include "map.h"
 #include "mapview.h"
@@ -52,6 +53,8 @@
 void ProtocolGame::parseMessage(const InputMessagePtr& msg)
 {
     m_diagnosticsLevel = g_game.getProtocolDiagnostics();
+    PkaMovementTrace::beginPacket(this, g_game.isPokeAllianceProtocol() && m_diagnosticsLevel == 4);
+    PkaMovementTrace::sample("packet-begin");
     const bool pkaProtocolDebug = g_game.isPokeAllianceProtocol() && m_diagnosticsLevel > 0;
     // Capture specific payloads only when enabled; FullMap is captured below
     // while diagnosing PKA tile-stream alignment.
@@ -81,6 +84,10 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                     fmt::format_to(std::back_inserter(opcodeRaw), "{:02X} ", byte);
             }
             opcode = opcodeU16 ? msg->getU16() : msg->getU8();
+            if (PkaMovementTrace::enabled) {
+                PkaMovementTrace::opcode = opcode;
+                ++PkaMovementTrace::opcodeIndex;
+            }
             if (pkaProtocolDebug && opcodeTrace.size() < 256) {
                 opcodeTrace += fmt::format(" @{}(body+{})[{}]=0x{:04X}", opcodePos, opcodeBodyOffset, opcodeRaw, opcode);
             }
@@ -777,6 +784,7 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                 g_logger.info("[pka-opcode-step] messageBytes={} opcode=0x{:04X} raw={} opcodeU16={} bodyOffset={} start={} end={} consumed={} unread={} handler=native",
                     msg->getMessageSize(), opcode, opcodeRaw, opcodeU16, opcodeBodyOffset, opcodePos, msg->getReadPos(), msg->getReadPos() - opcodePos, msg->getUnreadSize());
             }
+            PkaMovementTrace::sample("opcode-end");
             prevOpcode = opcode;
         }
     } catch (const stdext::exception& e) {
@@ -1734,8 +1742,10 @@ void ProtocolGame::parseTileRemoveThing(const InputMessagePtr& msg) const
 
 void ProtocolGame::parseCreatureMove(const InputMessagePtr& msg)
 {
+    PkaMovementTrace::Reason traceReason("move");
     const auto& thing = getMappedThing(msg);
     const auto& newPos = getPosition(msg);
+    PkaMovementTrace::move(thing, newPos);
 
     // PokeAlliance client 860 appends a U16 movement field after the destination.
     // Without consuming it, it is mistaken for the next server opcode.

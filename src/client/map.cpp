@@ -35,6 +35,7 @@
 #include "missile.h"
 #include "thing.h"
 #include "tile.h"
+#include "pkamovementtrace.h"
 
 #include <framework/core/asyncdispatcher.h>
 #include <framework/core/eventdispatcher.h>
@@ -668,6 +669,7 @@ void Map::setCentralPosition(const Position& centralPosition)
         const auto& oldPos = localPlayer->getPosition();
         const auto& pos = m_centralPosition;
         if (oldPos != pos) {
+            PkaMovementTrace::sample("forced-position-before", true);
             if (!localPlayer->isRemoved())
                 localPlayer->onDisappear();
             localPlayer->setPosition(pos);

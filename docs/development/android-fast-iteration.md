@@ -1,5 +1,20 @@
 # Ciclo de desenvolvimento Android
 
+Controle adicional de 24/10: o APK `b4126ad75`, com setup original e o hook
+`crowded_movement_android.lua` SEM habilitar Tile callbacks, passou uma nova
+execucao dos mesmos 1957 recebimentos: jogador presente no tile, zero updates
+forcados e 67 alvos de movimento ausentes. Os 2699 passos de leitura coincidem
+com a execucao anterior que falhou (66 updates forcados/158 alvos ausentes).
+Portanto, habilitar callbacks nao foi estabelecido como causa da diferenca.
+O movimento ao vivo continua sem validacao desse candidato.
+
+O nivel temporario `protocol-diagnostics: movement` habilita rastreio nativo
+limitado a 4096 registros por protocolo: pacote/opcode, membership do jogador,
+adicao/remocao local, motivo clean/overflow/move e ID mapeado nos movimentos.
+Nao registra credenciais, nao cria userdata Lua e nao guarda referencias a tiles
+ou criaturas. E instrumentacao para localizar a primeira divergencia, sem mudar
+regras de movimento. Remover o override ao restaurar a configuracao do teste.
+
 Regressao da sessao longa de 23/10: o APK426 entrou e ficou quase oito minutos
 online, mas um transform `0x6b` provocou erro local71 antes do EOF do relay.
 O DX atualizado `0x140778540..0x140778a1f` le primeiro U8modo; modo1 acrescenta

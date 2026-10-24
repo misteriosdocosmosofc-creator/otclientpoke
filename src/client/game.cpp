@@ -121,6 +121,7 @@ uint8_t Game::getProtocolDiagnostics() const
     auto value = settings ? settings->getValue("protocol-diagnostics") : std::string{};
     if (value.empty()) value = fileLevel;
     if (value == "off") return 0;
+    if (value == "movement") return 4; // Bounded native membership diagnostics.
     if (value == "records") return 2;
     if (value == "capture") return 3;
     return 1; // Lightweight summaries are the default.
