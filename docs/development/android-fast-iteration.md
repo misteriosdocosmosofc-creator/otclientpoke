@@ -363,3 +363,59 @@ opcodes ainda nao reconhecidos:0x62F(1),0x606(2),0x634(1),0x703(1),0x114(1),
 continuam pendentes; nao chamar esse resultado de compatibilidade completa.
 Evidencias privadas em `asset-coverage-20261023/catalog-after-5/`, incluindo
 runtime, screenshot e result.json. Nova conexao real426 ainda em validacao.
+
+## Transformacao de tiles: regressao Android validada (24/10/2026)
+
+A sessao real do APK426 terminou com erro local de protocolo apos 477634ms. O leitor
+PKA de 0x6B omitia o byte de modo anterior ao mapped thing, deixando quatro bytes
+do pacote final serem interpretados como outro opcode. O DX original confirma
+modo U8: modo 1 acrescenta count U16 e repete os pares; demais modos leem um par.
+Commit 1282a1051 aplica essa regra apenas ao perfil PKA e continua consumindo o
+lote quando um alvo nao existe. Os testes C++ passaram 187 casos validos e
+rejeitaram 9395 prefixos truncados, preservando as regressoes FullMap anteriores.
+
+APK 1282a1051a811befee049890220b20176fbf29a6, SHA-256
+`536aacf4c7dce2f3b6d777d8cca9957a52b356de8bab01178c290ca0c9e275dd`,
+foi instalado com `adb install -r` e Success em 24/10, apos a tentativa anterior
+falhar por armazenamento insuficiente. Hash do APK instalado conferido, sem
+limpeza de outros aplicativos, nova assinatura ou recompilacao.
+
+Na engine Android, `transform_android.lua` reproduziu os 1981 recebimentos
+originais com tempo 8x e os lotes sinteticos vazio/unico/multiplo/modos 2 e 255.
+Terminou online=true, criatura 268446573 na posicao (3947,3860,6), direcao 2,
+jogador local na direcao 3 e inventario 4 com item 869/subtipo 17185. O marcador
+`[coverage-replay] complete passed=true` foi registrado as 08:38:55.749.
+O alvo sintetico ausente 65000/65000/7 gera um aviso esperado; os registros e a
+sentinela seguintes sao processados. Rc/config originais foram restaurados e
+verificados byte a byte, preservando luz 100/lights false e antialiasing 2.
+
+Essa reproducao registrou zero excecoes de parse, protocol_error/code71 ou
+FATAL EXCEPTION. Ainda houve 171 avisos de opcode desconhecido: 0x62F(1),0x606(2),
+0x634(1),0x703(1),0x114(1),0x56(6),0x115(18),0x45(134),0x11B(6),0x5F1(1),
+alem de 102 avisos de movimento com alvo ausente. Esses casos permanecem para
+analise separada; o resultado comprova a regressao 0x6B e o estado final medido,
+sem estabelecer compatibilidade integral ou estabilidade/FPS em tempo real.
+Screenshot inspecionado mostra cenario claro com varios personagens; alguns
+elementos com X vermelhos permanecem. Evidencias privadas em
+`asset-coverage-20261023/transform-after/`, incluindo result.json e screenshot.
+Entrada manual posterior confirmada pelo usuario: cenario claro e movimento
+funcionando. FullMap real terminou as 08:41:49.381, start63/end41195,
+remaining7908, 32x20. Snapshot inicial preservou 117 recebimentos/22737ms,
+crash vazio e screenshot inspecionado.
+
+Sessao longa preservada as 08:52:24: mesma instancia PID18102, 4499 recebimentos,
+ultimo timestamp 638436ms (10min38s), CAM/TAR e hashes validados. O coletor
+registrou 74 transformacoes 0x6B (65 consumindo 16 bytes e 9 consumindo 13),
+sem excecao de parse, protocol_error, erro de conexao ou desconexao na janela;
+buffer de crash vazio. Screenshot inspecionado mostra o personagem em area com
+varios jogadores e cenario claro. Esse coletor e filtrado e nao inclui todos os
+avisos de opcode desconhecido/alvo ausente. Preservados snapshot, manifest e
+validation.json privados em `codespace-1282a1051/live-20261024-085224/`.
+
+Tres janelas curtas do SurfaceFlinger na mesma sessao mediram aproximadamente
+46,2/51,6/48,3 FPS. As duas ultimas tiveram intervalo maximo de 49,2ms e nenhum
+intervalo acima de 50ms; a primeira teve tres acima de 50ms. Sao amostras de
+126-127 frames, nao uma media sustentada nem comparacao controlada com a sessao
+anterior. Memoria/top/thermal brutos preservados com as amostras privadas.
+Nenhuma opcao de FPS, antialiasing ou iluminacao foi alterada. Cliente normal
+permaneceu aberto, sem hook de replay, com coleta ativa ao concluir o teste.
