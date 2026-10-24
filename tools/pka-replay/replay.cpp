@@ -50,8 +50,7 @@ int main(int argc, char** argv) {
         const auto itemId = msg.getU16();
         const auto attrs = properties[itemId];
         if (attrs < 0) throw std::runtime_error("invalid item " + std::to_string(itemId));
-        if (attrs & 1) msg.getU16();
-        else if (attrs & 14) msg.getU8();
+        if (attrs & 7) msg.getU16();
         PkaProtocol::readItemAttributes(msg, itemId);
     };
     size_t tiles = 0, skips = 0, items = 0, creatures = 0;
@@ -96,8 +95,7 @@ int main(int argc, char** argv) {
                     } else {
                         const auto attrs = properties[thingId];
                         if (attrs < 0) throw std::runtime_error("invalid item " + std::to_string(thingId) + " at " + std::to_string(start));
-                        if (attrs & 1) msg.getU16();
-                        else if (attrs & 14) msg.getU8();
+                        if (attrs & 7) msg.getU16();
                         PkaProtocol::readItemAttributes(msg, thingId);
                         ++items;
                         span("item", start, thingId);

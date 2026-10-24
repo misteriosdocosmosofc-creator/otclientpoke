@@ -1,0 +1,62 @@
+# PKA offline coverage
+
+These developer tools keep DAT/SPR assets, captured credentials, CAM recordings,
+screenshots, and generated fixtures outside Git. Supply private paths explicitly.
+They do not contact the game server or train a parser: failures identify a
+specific field layout or asset that needs evidence and a code correction.
+
+`audit_assets.py` parses every definition in the verified PKA DAT profile and
+decodes every nonempty SPR entry as 32x32 RGBA RLE. It checks complete input
+consumption, run bounds, dimensions, and cross references. Blank layers and
+empty SPR entries are reported separately, since they can be intentional.
+This is a CPU/structure check, not a GPU rendering check.
+
+```powershell
+python tools/pka-replay/audit_assets.py --dat <private.dat> --spr <private.spr> --output <private-dir>/audit.json --records <private-dir>/things.jsonl
+python tools/pka-replay/generate_helper_cases.py <private-dir>/helper-cases.bin
+g++ -std=c++20 -O2 tools/pka-replay/coverage.cpp -o <private-dir>/pka-coverage
+<private-dir>/pka-coverage <private-dir>/helper-cases.bin
+```
+
+The helper suite exercises nonzero/zero outfit branches, empty/nonempty strings,
+unknown/known creature records, subtypes 0-4, optional prelude gates 0/1/2,
+empty/nonempty attribute and record lists, special item `0x25a0`, item text
+modes, and effect lists. Each valid case must stop before the next opcode;
+every proper truncated prefix must reject. The serializers use measured
+original-client layouts. Passing synthetic cases does not establish support for
+unobserved server packet forms.
+
+`generate_catalog.py` takes per-thing metadata from the audit and a private seed
+with a challenge followed by an accepted world packet. It copies received data
+only and creates a fluid-width regression and a catalog fixture containing every
+item ID and outfit ID. Later CAM buffers are logical messages without a new
+transport size header. `check_catalog.py` checks each generated packet against
+the shared C++ replay reader. Keep the historical real-recording regressions too.
+
+The original DX item reader `0x140799cd0` tests stackable, fluid container, and
+splash flags and reads **U16 for each** (`0x14082ce40`). Its helper
+`0x1407054d0` tests flag index 11 (splash). Deprecated raw DAT attribute 8 does
+not add a count. Retaining it in a synthetic wire-flags table would create
+invalid fixtures. It is deliberately excluded from `prepare.py` and the audit's
+`wireFlags`. The standard non-PKA item count behavior remains unchanged.
+
+`run_android_probe.py` accepts an explicit serial, expected original startup-hook
+SHA-256, Lua hook, files, and a fresh private output directory. It preserves the
+live recording before stopping the app, verifies staged files by hash, streams
+logs, and restores the original startup hook/config byte for byte in `finally`.
+It closes the app after the probe. Do not run it during a live session without
+preserving the evidence first. USB loss can interrupt cleanup; use its saved
+`original-rc.lua` and `original-config.otml` to recover before a normal login.
+
+Use `audit_android.lua` with `coverage-expectations.json` to compare all native
+ThingTypes, sprite-reference dimensions, and item wire flags. Use
+`fluid_android.lua` with `fluid-width-repro.cam` to check U16 subtype `0x1234`
+and the following inventory sentinel. Use `catalog_android.lua`, staging
+`audit_android.lua`, expectations, catalog manifest and CAM, to perform the
+metadata audit followed by catalog parsing. Pass `--marker '[coverage-replay]
+complete'` for either replay hook (as a single string).
+
+These engine probes establish metadata and parser coverage; they do not render
+every phase/pattern of every definition on the GPU. Real connection, movement,
+visual checks, and minimap interaction remain separate validation steps. Keep
+temporary hooks out of the normal game startup.

@@ -297,3 +297,38 @@ timeout ADB; manter a evidencia inicial e o log continuo. Usuario pediu pausa po
 creditos; proxima bateria de assets/protocolo fica para a retomada. O EOF remoto
 original das16:45 continua sem causa conclusiva, embora novas entradas tenham
 sido aceitas e a ultima falha local de FullMap tenha sido corrigida e retestada.
+
+## Cobertura do catalogo e subtipos de liquidos (23/10/2026)
+
+A varredura em `tools/pka-replay/audit_assets.py` percorreu 59034 definicoes
+(51897 itens,3998 outfits,2888 efeitos,251 projeteis), com1693400 referencias de
+sprite, ate EOF exato do DAT. Decodificou os586208 sprites nao vazios em RGBA,
+sem RLE invalido nem referencia acima do limite do SPR. O sprite1 tem offset
+zero e e referenciado; camadas vazias sao permitidas, nao substituir por outro
+asset. Isso valida estrutura/CPU, nao a renderizacao de todas as animacoes na GPU.
+
+Comparacao de metadados na engine143 percorreu o mesmo catalogo. A primeira
+expectativa de teste incluiu a flag chargeable antiga (raw8), gerando36 diferencas.
+A verificacao do DX original mostrou que essa flag nao acrescenta contagem no
+pacote: corrigir a EXPECTATIVA, sem habilitar uma leitura de carga inexistente.
+O reprodutor/prepare agora excluem esse bit dos wire flags.
+
+Encontrada uma diferenca real: `FUN_140799cd0` no DX atualizado testa os flags
+5/10/11 (stackable/fluid/splash); o helper0x1407054d0 confirma o indice11. Os tres
+casos chamam o leitorU16 0x14082ce40. O OTC PKA consumia U16 apenas em stackable,
+deixando recipientes/poças com um byte sobrando. Fixture recebida sintetica de
+item869/subtipo0x1234 seguido de inventario sentinela reproduziu opcode falso
+0x7800 no byte8 com o leitor antigo. Correcao usa U16 para os tres casos PKA;
+os demais perfis mantem a escolha existente por feature.
+
+Leitor corrigido passou721pacotes gerados:51897IDs de item (modos de texto0/1/3),
+3998IDs de outfit, ramo invisivel/lookType0 e sentinelas seguintes. Suite dos
+helpers passou180casos com opcionais/listas e rejeitou9380prefixos truncados.
+Regressoes FullMap preservaram os limites29375(reentrada),43636(Android antigo)
+e45372(referenciaPC); bootstrap Android foi consumido ate o fim. Evidencias e
+fixtures ficam privadas em android-artifacts/asset-coverage-20261023/.
+
+Ferramentas/restricoes detalhadas em [pka-replay README](../../tools/pka-replay/README.md).
+Teste Android do subtipo e do catalogo completo no APK corrigido permanece
+pendente neste checkpoint. ADB desconectou apos o teste inicial de metadados;
+rc/config foram restaurados byte a byte e app fechado antes da desconexao.

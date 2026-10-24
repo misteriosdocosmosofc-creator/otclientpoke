@@ -26,7 +26,7 @@ with (args.output / 'item-flags.txt').open('w', encoding='ascii') as output:
     for item_id in range(100, count):
         item = module.read_item(reader, item_id)
         names = {name for _, name, _ in item['attrs']}
-        flags = sum(bit for name, bit in [('stackable', 1), ('fluidContainer', 2), ('splash', 4), ('chargeable', 8)] if name in names)
+        flags = sum(bit for name, bit in [('stackable', 1), ('fluidContainer', 2), ('splash', 4)] if name in names)
         output.write(f'{item_id} {flags}\n')
 if args.pc_capture:
     capture = args.pc_capture

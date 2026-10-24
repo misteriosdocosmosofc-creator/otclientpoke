@@ -4650,7 +4650,9 @@ ItemPtr ProtocolGame::getItem(const InputMessagePtr& msg, int id)
 
     if (item->isStackable() || item->isFluidContainer() || item->isSplash() || item->isChargeable()) {
         const bool pkaMap860Format = g_game.isPokeAllianceProtocol();
-        const bool useU16Count = g_game.getFeature(Otc::GameCountU16) || (pkaMap860Format && item->isStackable());
+        // PKA's original item reader uses U16 for stack counts and both fluid
+        // categories. Reading a fluid subtype as U8 shifts the next opcode.
+        const bool useU16Count = g_game.getFeature(Otc::GameCountU16) || pkaMap860Format;
         item->setCountOrSubType(useU16Count ? msg->getU16() : msg->getU8());
     }
 
