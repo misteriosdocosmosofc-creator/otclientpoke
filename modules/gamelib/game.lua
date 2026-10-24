@@ -16,9 +16,25 @@ function g_game.findPlayerItem(itemId, subType, tier)
     return g_game.findItemInContainers(itemId, subType, tier or 0)
 end
 
+local pokeAllianceAttackSeqOverride = false
+
 function g_game.chooseRsa(host)
     local rsaHost = host:lower():gsub('^https?://', ''):match('^([^/:]+)') or host:lower()
     g_game.setPokeAllianceProtocol(rsaHost == 'pokealliance.com' or rsaHost:ends('.pokealliance.com'))
+    if g_game.isPokeAllianceProtocol() then
+        -- PKA uses 860 assets with the 854 attack protocol. Its clear-target
+        -- opcode has no U32 sequence, including when sent as a standalone packet.
+        -- Keep outgoing attack/follow packets on that same feature contract.
+        g_game.disableFeature(GameAttackSeq)
+        pokeAllianceAttackSeqOverride = true
+    elseif pokeAllianceAttackSeqOverride then
+        -- Switching hosts without changing the asset version must restore the
+        -- ordinary 860 feature that PKA temporarily overrode.
+        if g_game.getClientVersion() >= 860 then
+            g_game.enableFeature(GameAttackSeq)
+        end
+        pokeAllianceAttackSeqOverride = false
+    end
     if G.currentRsa ~= CIPSOFT_RSA and G.currentRsa ~= OTSERV_RSA and G.currentRsa ~= POKEALLIANCE_RSA then
         return
     end
