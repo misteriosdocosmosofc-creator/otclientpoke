@@ -6,6 +6,11 @@ activity's `gfxinfo` or only the on-screen FPS counter.
 
 The following changes reduce work without changing movement or packet layouts:
 
+- Android debug APKs compile C++ with `-O2` by default. They keep debug symbols,
+  assertions, persistent signing, and `run-as` access. The prior debug commands
+  had no optimization option (the compiler's unoptimized default). Use
+  `-Potclient.android.optimizeDebug=false` only when an unoptimized build is
+  specifically needed for debugging. CMake/ccache outputs are retained.
 - Disabling audio pauses the OpenAL playback device through
   [`ALC_SOFT_pause_device`](https://openal-soft.org/openal-extensions/SOFT_pause_device.txt),
   where supported. Stopping sources alone leaves the output mixer running.

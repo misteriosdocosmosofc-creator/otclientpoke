@@ -79,6 +79,12 @@ android {
             externalNativeBuild {
                 cmake {
                     arguments += listOf("-DOPTIONS_ENABLE_IPO=OFF", "-DOTCLIENT_ITERATION_BUILD=ON")
+                    // Debuggable APKs are also used for on-device playtesting.
+                    // Keep symbols/assertions and run-as access, but avoid an
+                    // unoptimized renderer and map/protocol processing loop.
+                    if (providers.gradleProperty("otclient.android.optimizeDebug").orElse("true").get().toBoolean()) {
+                        cppFlags += listOf("-O2")
+                    }
                 }
             }
         }
