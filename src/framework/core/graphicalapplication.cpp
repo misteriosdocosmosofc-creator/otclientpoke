@@ -196,13 +196,7 @@ void GraphicalApplication::run()
 
 #ifndef __EMSCRIPTEN__
     const auto FPS = [this] {
-#ifdef ANDROID
-        // Process input and prepare the map twice per display frame at 60 Hz.
-        // The desktop 500 Hz loop needlessly competes with rendering on phones.
-        m_mapProcessFrameCounter.setTargetFps(120u);
-#else
         m_mapProcessFrameCounter.setTargetFps(g_window.vsyncEnabled() || getMaxFps() || getTargetFps() ? 500u : 0u);
-#endif
         return m_graphicFrameCounter.getFps();
     };
 #endif

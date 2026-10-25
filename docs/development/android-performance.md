@@ -6,10 +6,6 @@ activity's `gfxinfo` or only the on-screen FPS counter.
 
 The following changes reduce work without changing movement or packet layouts:
 
-- Android's event/map preparation loop targets 120 updates per second instead
-  of the desktop 500. Rendering retains its configured FPS limit. This leaves
-  two processing opportunities per 60 Hz display frame and reduces competition
-  for the phone's CPU. Desktop and WebAssembly retain their existing limits.
 - Disabling audio pauses the OpenAL playback device through
   [`ALC_SOFT_pause_device`](https://openal-soft.org/openal-extensions/SOFT_pause_device.txt),
   where supported. Stopping sources alone leaves the output mixer running.
@@ -25,6 +21,10 @@ The following changes reduce work without changing movement or packet layouts:
 
 These changes do not remove assets, shrink the aware map range, discard effects
 from network parsing, alter walk timing, or modify proxy selection.
+
+A 120 Hz Android event/map preparation limit was also evaluated. Repeated
+crowded-map replays did not establish an improvement in frame delivery or event
+latency, so that experiment was reverted. The existing processing rate remains.
 
 For validation, replay the same private crowded-map fixture with diagnostics
 disabled before and after installation. Check online status and final local
