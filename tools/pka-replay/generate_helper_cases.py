@@ -18,6 +18,11 @@ def string(value): return u16(len(value)) + value
 
 
 def cases():
+    # DX 0x140794450 (PKA 0x88): fixed 13-byte creature update.
+    # Include the 10/300/0 form visible in the real error's unread tail.
+    yield 5, 0x88, u32(0x40CB1BC5) + u32(10) + u32(300) + u8(0)
+    for ident, value, flag in product((0, 0xFFFFFFFF), (0, 0xFFFFFFFF), (0, 1, 255)):
+        yield 5, 0x88, u32(ident) + u32(value) + u32(value) + u8(flag)
     for mode in (0, 2, 255):
         yield 4, 1, u8(mode)
     for count in (0, 1, 2, 65535):

@@ -41,6 +41,10 @@ void consume(Reader& msg, uint8_t kind, uint16_t param) {
             if (PkaProtocol::readTileTransformCount(msg) != param)
                 throw std::runtime_error("decoded transform count differs from fixture");
             break;
+        case 5:
+            if (!PkaProtocol::readAuxiliary(msg, param))
+                throw std::runtime_error("unsupported auxiliary fixture");
+            break;
         default: throw std::runtime_error("unknown fixture kind");
     }
 }

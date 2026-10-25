@@ -78,7 +78,11 @@ void readToggleWindow(Reader& msg)
 template<class Reader>
 bool readAuxiliary(Reader& msg, uint16_t opcode)
 {
-    if (opcode == 0x00ba) {
+    if (opcode == 0x0088) {
+        // DX 0x140794450: creature ID, two U32 values and a U8 flag.
+        // PKA reuses this opcode; it is not vanilla BrowseForgeHistory.
+        msg.getU32(); msg.getU32(); msg.getU32(); msg.getU8();
+    } else if (opcode == 0x00ba) {
         // PC FUN_14072ff20: PKA task catalog, unrelated to vanilla TaskHuntingBasicData.
         msg.getU8();
         const auto count = msg.getU16();

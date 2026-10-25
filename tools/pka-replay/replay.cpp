@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
                             throw std::runtime_error("unmapped text message mode " + std::to_string(mode));
                         msg.getString(); break;
                     }
-                    case 0x00ba: case 0x00c1: case 0x00c5: case 0x0105: case 0x0108: case 0x005d: case 0x005e: case 0x0053: case 0x05f7: case 0x0616: case 0x05e7: case 0x05ec: case 0x05ed: case 0x05ee: case 0x05ef: case 0x05f0:
+                    case 0x0088: case 0x00ba: case 0x00c1: case 0x00c5: case 0x0105: case 0x0108: case 0x005d: case 0x005e: case 0x0053: case 0x05f7: case 0x0616: case 0x05e7: case 0x05ec: case 0x05ed: case 0x05ee: case 0x05ef: case 0x05f0:
                     case 0x0606: case 0x060a: case 0x060e: case 0x0631: case 0x0632: case 0x0633:
                         if (!PkaProtocol::readAuxiliary(msg, opcode)) throw std::runtime_error("unsupported auxiliary form");
                         break;
