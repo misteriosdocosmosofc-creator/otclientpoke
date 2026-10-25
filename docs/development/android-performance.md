@@ -38,3 +38,33 @@ CPU time (including the OpenAL mixer), and memory. Preserve live logs/settings
 before restarting. Restore settings and startup hooks byte for byte afterwards;
 keep recordings and user data outside version control. Offline results do not
 establish live network latency or guarantee that every scene will be smooth.
+
+## Device comparison, 2026-10-24
+
+The final optimized build was compared with the previous unoptimized native
+build on the same Android phone, using the same 1,957 received packets at 4x
+speed, existing Lua fixes, 60 FPS limit, and low graphics settings. Expensive PSS
+collection ran after the callback timing window. Each presentation window was
+about 35 seconds with the game in the foreground.
+
+| Measurement | Previous native build | Optimized native build |
+| --- | ---: | ---: |
+| Mean interval for a scheduled 100 ms callback | 130.09 ms | 102.81 ms |
+| Maximum callback interval | 855 ms | 121 ms |
+| Callback intervals over 150 ms | 39 | 0 |
+| Display presentation intervals in histogram bins at least 50 ms | 105 | 34 |
+| Display presentation intervals in histogram bins above 100 ms | 18 | 0 |
+| Detailed movement log lines in the replay | 1,553 | 0 |
+
+Both runs remained online with the local player on the expected final tile and
+no parse exception, code 71, forced player position update, or Lua exception.
+The muted mixer stopped running in the optimized build, resumed when audio was
+enabled, and stopped again when disabled. The wheel module's startup work went
+from 43.74 seconds to 4.19 seconds in these runs.
+
+PSS including graphics was about 771 MiB before and 786 MiB after; this test did
+not show a RAM reduction. The demonstrated gains are reduced processing and
+fewer long presentation intervals. SurfaceFlinger histogram bins are grouped
+measurements, and scene/device conditions can change live results. Its per-layer
+summary covered only a small subset of each window, so the full display window
+was used instead of presenting that partial FPS value as a whole-run average.
