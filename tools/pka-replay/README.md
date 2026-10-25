@@ -26,6 +26,11 @@ every proper truncated prefix must reject. The serializers use measured
 original-client layouts. Passing synthetic cases does not establish support for
 unobserved server packet forms.
 
+The suite also covers PKA's fixed 13-byte creature update at `0x88`, which must
+not reach the vanilla forge-history reader. See
+[`pka-creature-update.md`](../../docs/development/pka-creature-update.md) for the
+original-client layout, real-log evidence and native Android regression results.
+
 `generate_catalog.py` takes per-thing metadata from the audit and a private seed
 with a challenge followed by an accepted world packet. It copies received data
 only and creates a fluid-width regression and a catalog fixture containing every

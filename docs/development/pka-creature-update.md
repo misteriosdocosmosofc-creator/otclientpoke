@@ -36,3 +36,32 @@ malformed-packet handling or discard the remainder of a message.
 reader with the observed values, zero/maximum integers and zero/nonzero flags.
 Each case must stop before a following opcode, and every proper truncated prefix
 must reject. Generated fixtures and real logs remain outside Git.
+
+## Validation on 2026-10-24
+
+- The shared C++ helper suite passed 200 cases and rejected all 9,564 truncated
+  prefixes in the persistent Codespace. The existing attack-sequence profile
+  test also passed.
+- On the optimized Android APK before this change, a reconstructed message
+  starting with the observed `0x88` form reproduced the parser exception and
+  code 71. A corrected observer hook confirmed this without a hook exception.
+- Native APK `582693247` passed the same 96-byte message containing four
+  updates, including zero/maximum fields and nonzero flags. Its subsequent
+  health, auxiliary and ping opcodes were observed in the expected order while
+  the replay remained online.
+- A separate native replay passed a 202-byte crop from the last real exception's
+  unread dump. This preserves six complete `0x88` updates plus intervening health
+  and animated-text records byte for byte. The crop omits the incomplete leading
+  record and later tile operations; it is not the complete original packet or a
+  replay of the complete failing live session.
+- Both corrected native probes had zero parser exceptions, code 71 events and
+  Lua exceptions. They asserted the 60 FPS limit and disabled audio. Compile
+  commands retained `-O2`; the incremental Codespace build took 3m 43s.
+- APK signature and installed APK hash were verified. Config, startup hook and
+  saved historical CAM were restored byte for byte; current Lua modules match
+  the checkout. Diagnostics/recording remain off. The normal client was reopened
+  for manual login. Live gameplay after this fix still needs the user's check.
+
+The earlier inventory `ui.amulet` exception occurs after disconnect and remains
+a separate issue. This change does not establish complete PKA protocol support
+or explain the preceding relay EOF connection error (code 2).
