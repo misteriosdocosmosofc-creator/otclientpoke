@@ -1,0 +1,144 @@
+PkaFloatWindow < UIWindow
+  width: 170
+  height: 60
+  focusable: false
+  draggable: true
+  background-color: #101722DD
+  border-width: 1
+  border-color: #53667c
+  padding: 3
+
+  Label
+    id: title
+    anchors.left: parent.left
+    anchors.right: minimize.left
+    anchors.top: parent.top
+    height: 25
+    text-align: left
+    font: verdana-11px-rounded
+    color: #e6f0ff
+    phantom: true
+
+  Button
+    id: minimize
+    anchors.top: parent.top
+    anchors.right: parent.right
+    size: 30 25
+    text: -
+
+  Panel
+    id: contents
+    anchors.top: title.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    margin-top: 2
+    focusable: false
+    phantom: true
+
+PkaRosterRow < UIButton
+  height: 38
+  focusable: false
+  background-color: #283341CC
+  margin-bottom: 2
+
+  UIWidget
+    id: portrait
+    size: 32 32
+    anchors.left: parent.left
+    anchors.verticalCenter: parent.verticalCenter
+    image-fixed-ratio: true
+    phantom: true
+
+  Label
+    id: name
+    anchors.left: portrait.right
+    anchors.right: parent.right
+    anchors.top: parent.top
+    margin-left: 3
+    height: 13
+    text-align: left
+    font: verdana-11px-rounded
+    phantom: true
+
+  ProgressBar
+    id: health
+    anchors.top: name.bottom
+    anchors.left: name.left
+    anchors.right: parent.right
+    margin-right: 3
+    height: 12
+    background-color: #29b33e
+    font: verdana-11px-rounded
+    phantom: true
+
+  Label
+    id: cooldown
+    anchors.left: name.left
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    height: 11
+    text-align: left
+    color: #72d8f2
+    font: verdana-11px-rounded
+    phantom: true
+
+PkaMoveButton < UIButton
+  size: 43 44
+  focusable: false
+  background-color: #263749
+  border-width: 1
+  border-color: #6883a1
+
+  UIItem
+    id: icon
+    size: 34 34
+    anchors.centerIn: parent
+    virtual: true
+    phantom: true
+
+  UIProgressRect
+    id: progress
+    anchors.fill: parent
+    background-color: #00000099
+    percent: 100
+    phantom: true
+
+  Label
+    id: key
+    anchors.bottom: parent.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    height: 13
+    font: verdana-11px-rounded
+    color: white
+    phantom: true
+
+  Label
+    id: seconds
+    anchors.centerIn: parent
+    size: 40 16
+    font: verdana-11px-rounded
+    color: #fff39b
+    phantom: true
+
+PkaConditionIcon < UIWidget
+  size: 34 36
+  phantom: false
+
+  UIWidget
+    id: icon
+    size: 24 24
+    anchors.top: parent.top
+    anchors.horizontalCenter: parent.horizontalCenter
+    phantom: true
+
+  Label
+    id: seconds
+    anchors.bottom: parent.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    height: 12
+    font: verdana-11px-rounded
+    color: white
+    phantom: true

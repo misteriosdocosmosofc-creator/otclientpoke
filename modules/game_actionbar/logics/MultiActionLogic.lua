@@ -196,7 +196,7 @@ local function findNextAvailableAction(multiActions)
             local itemCount = player and player:getInventoryCount(itemId, upgradeTier) or 0
             firstValidAction = firstValidAction or data
 
-            local runeSpellData = Spells.getRuneSpellByItem(itemId)
+            local runeSpellData = getItemActionSpell(itemId, data["useType"])
             if runeSpellData then
                 local spellCooldownRemaining = getSpellCooldownRemaining(runeSpellData.id)
                 local groupCooldownRemaining = getSpellGroupCooldownRemaining(runeSpellData)
@@ -256,7 +256,7 @@ local function renderSlotOnWidget(widget, slotData, isMainButton)
             widget.item:setChecked(itemCount ~= 0 and equipped)
         end
 
-        local runeSpellData = Spells.getRuneSpellByItem(widget.cache.itemId)
+        local runeSpellData = getItemActionSpell(widget.cache.itemId, slotData["useType"])
         if runeSpellData then
             widget.cache.isRuneSpell = true
             widget.cache.spellData = runeSpellData
@@ -414,7 +414,7 @@ function registerMultiActionCooldownEvents(button)
                 end
             end
         elseif actionData and actionData["useObject"] then
-            local runeSpellData = Spells.getRuneSpellByItem(actionData["useObject"])
+            local runeSpellData = getItemActionSpell(actionData["useObject"], actionData["useType"])
             if runeSpellData then
                 local remaining = math.max(getSpellCooldownRemaining(runeSpellData.id),
                     getSpellGroupCooldownRemaining(runeSpellData))

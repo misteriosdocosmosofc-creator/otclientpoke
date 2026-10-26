@@ -33,6 +33,10 @@ function ProtocolGame:getLoginPreAuthData()
 end
 
 function ProtocolGame:onOpcode(opcode, msg)
+    if g_game.isPokeAllianceProtocol() and modules.game_pokemon and modules.game_pokemon.parseOpcode and
+       modules.game_pokemon.parseOpcode(self, opcode, msg) then
+        return true
+    end
     for i, callback in pairs(opcodeCallbacks) do
         if i == opcode then
             callback(self, msg)

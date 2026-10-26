@@ -95,6 +95,8 @@ UseTypes = {
     ["passiveAbility"] = UseTypePassiveAbility,
     ["specialAction"] = UseTypeSpecialAction,
     ["UseAtCursorPosition"] = UseTypeUseAtCursorPosition,
+    ["UseOnPokemon"] = 10,
+    ["AutoRevive"] = 11,
 }
 
 UseTypesTip = {
@@ -103,7 +105,9 @@ UseTypesTip = {
     [UseTypeSelectUseTarget] = "Use %s with Crosshair",
     [UseTypeUseAtCursorPosition] = "Use %s at Cursor Position",
     [UseTypeEquip] = "%s %s",
-    [UseTypeUse] = "Use %s"
+    [UseTypeUse] = "Use %s",
+    [10] = "Use %s on Pokemon",
+    [11] = "Auto Revive with %s"
 }
 
 PassiveAbilities = {

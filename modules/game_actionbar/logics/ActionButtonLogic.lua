@@ -57,6 +57,17 @@ local function resolveMultiUseType(useType)
     return getActionName(tonumber(useType) or useType) or "Use"
 end
 
+function getItemActionSpell(itemId, useType)
+    if g_game.isPokeAllianceProtocol() and
+       (useType == 'UseOnPokemon' or useType == 'AutoRevive' or
+        useType == UseTypes.UseOnPokemon or useType == UseTypes.AutoRevive) then
+        -- PKA item IDs overlap Tibia runes. These explicit item commands do
+        -- not inherit the unrelated rune's spell groups or cooldowns.
+        return nil
+    end
+    return Spells.getRuneSpellByItem(itemId)
+end
+
 function hasMultiActions(multiActions)
     if type(multiActions) ~= "table" then
         return false
@@ -304,6 +315,11 @@ end
 --- Executes the action assigned to a button
 function onExecuteAction(button, isPress)
     local cache = getButtonCache(button)
+    -- Pokemon item actions are one command per touch/key-down. Holding the
+    -- hotkey must not turn Auto Revive into repeated scheduled use.
+    if isPress and (cache.actionType == UseTypes.UseOnPokemon or cache.actionType == UseTypes.AutoRevive) then
+        return true
+    end
     if cache.lastClick > g_clock.millis() then
         return true
     end
@@ -324,6 +340,13 @@ function onExecuteAction(button, isPress)
     button.cache.lastClick = g_clock.millis() + cooldown
     local action = button.cache.actionType
     if action == 0 then
+        return true
+    end
+
+    if action == UseTypes.UseOnPokemon or action == UseTypes.AutoRevive then
+        if g_game.isPokeAllianceProtocol() and button.item and modules.game_pokemon then
+            modules.game_pokemon.usePokemonItem(button.item:getItemId(), action == UseTypes.AutoRevive)
+        end
         return true
     end
 
@@ -1067,7 +1090,7 @@ function updateButton(button)
             cachedItemWidget[useAction] = {}
             table.insert(cachedItemWidget[useAction], button)
         end
-        local spellData = Spells.getRuneSpellByItem(useAction)
+        local spellData = getItemActionSpell(useAction, buttonData["actionsetting"]["useType"])
         if spellData then
             button.cache.isRuneSpell = true
             button.cache.spellData = spellData

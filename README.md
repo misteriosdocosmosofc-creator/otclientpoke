@@ -504,6 +504,11 @@ If it doesn't work, enable **curl**:
 ## <a id="the-mobile-project"></a><img height="20" src="https://raw.githubusercontent.com/github/explore/80688e429a7d4ef2fca1e82350fe8e3517d3494d/topics/android/android.png"/> The Mobile Project
 This is a fork of edubart's OTClient. The objective of this fork is to develop a runnable OTClient on mobile devices.
 
+The PokeAlliance mobile profile includes draggable Pokemon roster, move,
+condition and flight windows, plus touch order and one-touch item actions.
+See [Pokemon controls and validation](docs/development/pka-pokemon-controls.md)
+for the measured protocol, private image distribution and remaining live checks.
+
 **Tasks**
 - [x] Compile on Android devices
 - [ ] Compile on Apple devices

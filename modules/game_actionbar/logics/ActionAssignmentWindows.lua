@@ -347,6 +347,7 @@ function assignItem(button, itemId, itemTier, dragEvent, multiSlotIndex)
     end
     ActionBarController:loadHtml('html/object.html')
     local ui = ActionBarController.ui
+    if g_game.isPokeAllianceProtocol() then ui:setSize({width = 272, height = 240}) end
     ActionBarController:scheduleEvent(function()
         ui:centerIn('parent')
     end, 1, "lazyHtml")
@@ -363,6 +364,8 @@ function assignItem(button, itemId, itemTier, dragEvent, multiSlotIndex)
     local checkbox4 = ui:querySelector("#SelectUseTarget")
     local checkbox5 = ui:querySelector("#Equip")
     local checkbox6 = ui:querySelector("#Use")
+    local pokemonCheckbox = ui:querySelector("#UseOnPokemon")
+    local reviveCheckbox = ui:querySelector("#AutoRevive")
     local buttonOk = ui:querySelector("#buttonOk")
     local buttonApply = ui:querySelector("#buttonApply")
     local buttonClose = ui:querySelector("#buttonClose")
@@ -415,6 +418,12 @@ function assignItem(button, itemId, itemTier, dragEvent, multiSlotIndex)
     }, {
         widget = checkbox6,
         useType = "Use"
+    }, {
+        widget = pokemonCheckbox,
+        useType = "UseOnPokemon"
+    }, {
+        widget = reviveCheckbox,
+        useType = "AutoRevive"
     }}
 
     local activeActionType = multiSlotIndex and preselectActionType or button.cache.actionType
@@ -446,6 +455,23 @@ function assignItem(button, itemId, itemTier, dragEvent, multiSlotIndex)
     end
 
     -- UseTypes: Equip=4
+    local pka = g_game.isPokeAllianceProtocol() and modules.game_pokemon
+    if pokemonCheckbox then
+        pokemonCheckbox:setVisible(pka ~= false and pka ~= nil)
+        pokemonCheckbox:setEnabled(pka and item:isMultiUse() or false)
+        if pka and item:isMultiUse() and (activeActionType == UseTypes.UseOnPokemon or activeActionType == 'UseOnPokemon') then
+            selectedCheckbox = pokemonCheckbox
+        end
+    end
+    if reviveCheckbox then
+        reviveCheckbox:setVisible(pka ~= false and pka ~= nil)
+        reviveCheckbox:setEnabled(pka and modules.game_pokemon.isRevive(itemId) or false)
+        if pka and modules.game_pokemon.isRevive(itemId) and
+           (activeActionType == UseTypes.AutoRevive or activeActionType == 'AutoRevive') then
+            selectedCheckbox = reviveCheckbox
+        end
+    end
+
     if canEquipItem(item) then
         checkbox5:setEnabled(true)
 

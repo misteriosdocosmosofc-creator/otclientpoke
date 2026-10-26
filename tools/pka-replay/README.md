@@ -1,5 +1,15 @@
 # PKA offline coverage
 
+Pokemon touch controls are documented in
+[`pka-pokemon-controls.md`](../../docs/development/pka-pokemon-controls.md).
+`test_pokemon_protocol.lua` checks 23 payloads, 311 truncated prefixes, unknown
+property fields and five outgoing encodings with full Lua/LuaJIT. The native
+`pokemon_actions_android.lua` probe additionally checks item dialogs, JSON
+persistence, action-bar execution with intercepted sends, held-key suppression,
+flight timing, saved floating windows and profile isolation. It requires an
+explicit private `pokemon-actions.cam`; preserve/restore `/settings/` files in
+addition to the standard runner's RC/config backup before changing test actions.
+
 These developer tools keep DAT/SPR assets, captured credentials, CAM recordings,
 screenshots, and generated fixtures outside Git. Supply private paths explicitly.
 They do not contact the game server or train a parser: failures identify a

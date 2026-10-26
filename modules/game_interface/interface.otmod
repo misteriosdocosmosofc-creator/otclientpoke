@@ -9,6 +9,7 @@ Module
     - game_walk
     - game_joystick
     - game_shortcuts
+    - game_pokemon
     - game_minimap
     - game_healthinfo
     - game_inventory

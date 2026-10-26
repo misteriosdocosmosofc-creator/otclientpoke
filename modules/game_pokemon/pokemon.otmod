@@ -1,0 +1,8 @@
+Module
+  name: game_pokemon
+  description: PokeAlliance Pokemon bars and touch controls
+  author: OTClient contributors
+  sandboxed: true
+  scripts: [ catalog, protocol, pokemon ]
+  @onLoad: init()
+  @onUnload: terminate()
