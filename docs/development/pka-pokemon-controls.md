@@ -5,8 +5,9 @@ It provides floating, draggable and minimizable windows for the player's roster,
 selected Pokemon moves, own-summon conditions and flight height. Window offsets
 and minimized state use `pka-window-<id>` settings. A one-time deferred placement
 preserves parent-relative offsets after the game root moves below the top menu.
-Default positions use the settled map rectangle and leave the joystick and
-Hotkeys/Chat controls accessible. Existing saved positions take precedence.
+Default positions reserve the actual joystick and left-panel rectangles after
+layout, leaving movement and Hotkeys/Chat controls accessible. The map itself
+can extend beneath those overlays. Existing saved positions take precedence.
 
 The mobile attack/use/follow slots expose Comando/Pokes/Voo for this profile.
 Look remains available. Comando arms the standard item-target cursor with the

@@ -272,6 +272,15 @@ local function createWindows()
     placementEvent = nil
     local settledMap = modules.game_interface.getMapPanel()
     local settledLeft = settledMap and (settledMap:getX() - root:getX() + 5) or left
+    -- The map can extend under the mobile overlays and side panels. Reserve
+    -- their actual rectangles rather than assuming the map's left edge is free.
+    local keypad = g_ui.getRootWidget():recursiveGetChildById('keypad')
+    local side = modules.game_interface.getLeftPanel()
+    for _, obstacle in pairs({keypad = keypad, side = side}) do
+      if obstacle:isVisible() then
+        settledLeft = math.max(settledLeft, obstacle:getX() + obstacle:getWidth() - root:getX() + 8)
+      end
+    end
     for _, window in pairs(windows) do
       local position = window.pendingPosition
       if position then
