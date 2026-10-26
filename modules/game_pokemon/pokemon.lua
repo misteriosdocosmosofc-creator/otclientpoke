@@ -52,6 +52,7 @@ local function makeWindow(id, title, width, height, x, y)
   end
   window.onDragLeave = function() window.pendingPosition = nil remember(window) g_settings.save() end
   local saved = g_settings.getNode('pka-window-' .. id) or {}
+  window.defaultX = tonumber(saved.x) == nil
   window.pendingPosition = {x = tonumber(saved.x) or x, y = tonumber(saved.y) or y}
   window:setPosition({x = parent:getX() + window.pendingPosition.x,
                       y = parent:getY() + window.pendingPosition.y})
@@ -269,12 +270,20 @@ local function createWindows()
   -- Apply saved/default offsets once that parent rectangle has settled.
   placementEvent = scheduleEvent(function()
     placementEvent = nil
+    local settledMap = modules.game_interface.getMapPanel()
+    local settledLeft = settledMap and (settledMap:getX() - root:getX() + 5) or left
     for _, window in pairs(windows) do
       local position = window.pendingPosition
       if position then
+        if window.defaultX then
+          if window:getId() == 'pkaRoster' then position.x = settledLeft
+          elseif window:getId() == 'pkaFly' then position.x = math.max(settledLeft + 180, root:getWidth() - 355)
+          else position.x = settledLeft + 180 end
+        end
         window:setPosition({x = root:getX() + position.x, y = root:getY() + position.y})
         window:bindRectToParent()
         window.pendingPosition = nil
+        window.defaultX = nil
       end
     end
   end, 100)

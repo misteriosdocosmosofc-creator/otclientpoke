@@ -30,6 +30,7 @@ connect(g_app, {onRun = function()
             assert(windows[id]:getY() >= controls:getY() + controls:getHeight(),
               string.format('Default %s y=%d covers mobile controls bottom=%d', id, windows[id]:getY(), controls:getY() + controls:getHeight()))
           end
+          assert(windows.pkaRoster:getX() >= modules.game_interface.getMapPanel():getX(), 'Default roster covers the joystick/left panels')
           local saved = {}
           for id, window in pairs(windows) do
             window:setPosition({x = window:getX() + 7, y = window:getY() + 9})
