@@ -1,5 +1,13 @@
 # PKA offline coverage
 
+For the character disappearing after dismounting, see
+[`pka-signed-displacement.md`](../../docs/development/pka-signed-displacement.md).
+`generate_displacements.py` exports the private DAT's signed offsets;
+`displacement_android.lua` checks all 2,981 displaced/control definitions
+(1,744 with negative coordinates) in the native loader and the observed
+outfit-3860 transition in an offline replay, plus the three mobile shortcut
+icons. Keep the manifest/recording private and inspect its screenshot.
+
 Pokemon touch controls are documented in
 [`pka-pokemon-controls.md`](../../docs/development/pka-pokemon-controls.md).
 `test_pokemon_protocol.lua` checks 23 payloads, 311 truncated prefixes, unknown

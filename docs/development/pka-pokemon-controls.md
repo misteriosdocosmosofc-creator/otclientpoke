@@ -14,6 +14,14 @@ Look remains available. Comando arms the standard item-target cursor with the
 original virtual order item `3453`; the user then touches the map or character.
 No existing keyboard combinations are reassigned automatically.
 
+Comando/Pokes/Voo show the original client's hand, Pokeball and wing images with
+captions below them. The three private PNGs live at
+`data/images/game/mobile/pka-order.png`, `pka-pokeball.png` and `pka-fly.png`.
+Other profiles retain their original shortcut images and layout. Include these
+three files with the 900-image private overlay when packaging the APK.
+See [signed displacements](pka-signed-displacement.md) for the separate fix to
+the player disappearing after dismounting.
+
 ## Measured protocol
 
 The layouts were recovered from the original updated DX client. Field names

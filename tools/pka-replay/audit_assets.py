@@ -51,6 +51,7 @@ def dat_records(path):
     for category, highest in enumerate(counts):
         for ident in range(100 if category == 0 else 1, highest + 1):
             start, attrs = reader.pos, []
+            displacement = {'x': 0, 'y': 0}
             for _ in range(255):
                 raw = reader.u8()
                 if raw == 255:
@@ -67,7 +68,10 @@ def dat_records(path):
                         251 if raw == 35 else raw - 1 if raw > 8 else raw)
                 if attr in (0, 8, 9, 25, 28, 29, 32, 251):
                     reader.take(2)
-                elif attr in (21, 24):
+                elif attr == 24:
+                    x, y = struct.unpack('<hh', reader.take(4))
+                    displacement = {'x': x, 'y': y}
+                elif attr == 21:
                     reader.take(4)
                 elif attr == 33:
                     reader.take(6)
@@ -90,7 +94,8 @@ def dat_records(path):
             flags = ((1 if 5 in attrs else 0) | (2 if 11 in attrs else 0) |
                      (4 if 12 in attrs else 0))
             records.append(dict(category=category, id=ident, start=start, end=reader.pos,
-                                attrs=attrs, dimensions=dims, sprites=sprites, wireFlags=flags))
+                                attrs=attrs, dimensions=dims, sprites=sprites, wireFlags=flags,
+                                displacement=displacement))
     if reader.pos != len(reader.data):
         raise ValueError(f'DAT trailing bytes: {len(reader.data) - reader.pos}')
     return signature, counts, records

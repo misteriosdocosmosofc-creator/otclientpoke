@@ -609,7 +609,10 @@ void ThingType::unserialize(const uint16_t clientId, const ThingCategory categor
             case ThingAttrDisplacement:
             {
                 if (g_game.getClientVersion() >= 755) {
-                    if (g_game.getFeature(Otc::GameNegativeOffset)) {
+                    // PKA's DAT stores signed displacement values even before
+                    // host/RSA selection. Treating -16 as 65520 moves both the
+                    // outfit and its health/name display off screen.
+                    if (pkaDatFormat || g_game.getFeature(Otc::GameNegativeOffset)) {
                         m_displacement.x = fin->get16();
                         m_displacement.y = fin->get16();
                     } else {
