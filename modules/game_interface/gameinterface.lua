@@ -1080,6 +1080,12 @@ function processMouseAction(menuPosition, mouseButton, autoWalkPos, lookThing, u
             return true
         end
         local shortcut = modules.game_shortcuts.getShortcut()
+        local npcTrade = modules.game_npctrade
+        if shortcut == "" and mouseButton == MouseLeftButton and keyboardModifiers == KeyboardNoModifier and
+            creatureThing and creatureThing:isNpc() and g_game.isPokeAllianceProtocol() and
+            npcTrade and npcTrade.requestNpcTrade and npcTrade.requestNpcTrade(creatureThing) then
+            return true
+        end
         if shortcut == "look" then
             if lookThing then
                 modules.game_shortcuts.resetShortcuts()

@@ -7,6 +7,61 @@ controllerNpcTrader.isTradeOpen = false
 controllerNpcTrader.legacyMode = false
 controllerNpcTrader.npcTalkConnected = false
 
+local tapTrade = nil
+
+local function cancelTapTrade()
+    if tapTrade then
+        if tapTrade.timeout then removeEvent(tapTrade.timeout) end
+        if tapTrade.followup then removeEvent(tapTrade.followup) end
+        tapTrade = nil
+    end
+end
+
+function cancelNpcTradeRequest()
+    cancelTapTrade()
+end
+
+local function inNpcRange(npc)
+    local player = g_game.getLocalPlayer()
+    if not player or not npc or npc:isRemoved() then return false end
+    local p, n = player:getPosition(), npc:getPosition()
+    return p and n and p.z == n.z and math.max(math.abs(p.x - n.x), math.abs(p.y - n.y)) <= 3
+end
+
+function requestNpcTrade(npc)
+    if not g_platform.isMobile() or not g_game.isPokeAllianceProtocol() or not g_game.isOnline() or
+       not npc or not npc:isNpc() or not inNpcRange(npc) then return false end
+    if tapTrade and tapTrade.id == npc:getId() then return true end
+    cancelTapTrade()
+    local request = {id = npc:getId(), name = npc:getName(), sentTrade = false}
+    tapTrade = request
+    request.timeout = scheduleEvent(function()
+        if tapTrade == request then cancelTapTrade() end
+    end, 5000)
+    g_game.getLocalPlayer():stopAutoWalk()
+    g_game.talk('hi')
+    return true
+end
+
+local function onTapNpcTalk(name, level, mode)
+    local request = tapTrade
+    if not request or request.sentTrade or request.followup or name ~= request.name or
+       (mode ~= MessageModes.NpcFrom and mode ~= MessageModes.NpcFromStartBlock) then return end
+    -- Defer to the end of the receive packet: if the greeting already carries
+    -- a shop catalog, onOpenNpcTrade cancels this request before sending trade.
+    request.followup = addEvent(function()
+        if tapTrade ~= request then return end
+        request.followup = nil
+        local npc = g_map.getCreatureById(request.id)
+        if not g_game.isPokeAllianceProtocol() or not g_game.isOnline() or not inNpcRange(npc) then
+            cancelTapTrade()
+            return
+        end
+        request.sentTrade = true
+        g_game.talkChannel(MessageModes.NpcTo, 0, 'trade')
+    end)
+end
+
 function controllerNpcTrader:isLegacyMode()
     return self.legacyMode
 end
@@ -22,10 +77,12 @@ function controllerNpcTrader:onGameStart()
     end
 
     self:registerEvents(g_game, {
+        onTalk = onTapNpcTalk,
         onNpcChatWindow = function(data)
             onNpcChatWindow(data)
         end,
         onOpenNpcTrade = function(...)
+            cancelTapTrade()
             self:startEquippedImbuementsTracking()
             if self:isLegacyMode() then
                 onOpenNpcTrade(...)
@@ -85,6 +142,7 @@ function controllerNpcTrader:disconnectNpcTalkEvent()
 end
 
 function controllerNpcTrader:onTerminate()
+    cancelTapTrade()
     if self:isLegacyMode() then
         self:legacy_terminate()
     else
@@ -93,6 +151,7 @@ function controllerNpcTrader:onTerminate()
 end
 
 function controllerNpcTrader:onGameEnd()
+    cancelTapTrade()
     if self:isLegacyMode() then
         self:legacy_hide()
     else

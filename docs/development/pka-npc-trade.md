@@ -73,3 +73,28 @@ and both close buttons against the actual viewport, invokes both close
 callbacks with outgoing requests intercepted, verifies the window hides while
 the player stays online, and reopens it for the screenshot. This Lua/OTUI
 change can be synchronized to active `game_data` without rebuilding the APK.
+
+## One-tap shop request
+
+On mobile PKA, a plain left tap on a nearby NPC now starts the existing
+`hi` interaction and requests `trade` once after that NPC replies in the NPC
+channel. The reply must match the selected NPC's name; the target is looked
+up by ID again and must still be present, on the same floor and within three
+tiles. The follow-up is deferred until the receive packet finishes, so a shop
+included in the greeting cancels it. Repeated taps during the request do not
+repeat the greeting or trade. Requests expire after five seconds and are
+canceled on logout, module termination or receipt of a shop catalog.
+
+This implements the requested one-tap outcome with the existing greeting and
+trade commands. It does not claim a new native opcode was identified for the
+original PC right-click. No reply text is matched and no retry loop runs.
+An active Look/Use/Attack/Follow shortcut, modified tap, long-press context
+menu, desktop input and other protocol profiles retain their existing paths.
+Tapping a distant NPC retains normal walking behavior; the shop interaction
+requires being in talk range.
+
+`npc_tap_android.lua` exercises the production input handler and NPC reply
+events inside the Android client, with greeting/trade/look calls intercepted.
+It checks selected-NPC replies, one greeting/trade, repeated taps, cancellation,
+range/floor/removal/profile guards, a direct shop response and explicit Look.
+The actual server response to the gesture still requires a manual test.
