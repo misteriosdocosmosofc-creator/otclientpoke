@@ -57,8 +57,8 @@ public:
     void sendEquipItemWithCountOrSubType(uint16_t itemId, uint16_t tierOrFluid);
     void sendMove(const Position& fromPos, uint16_t thingId, uint8_t stackpos, const Position& toPos, uint16_t count);
     void sendInspectNpcTrade(uint16_t itemId, uint16_t count);
-    void sendBuyItem(uint16_t itemId, uint8_t subType, uint16_t amount, bool ignoreCapacity, bool buyWithBackpack);
-    void sendSellItem(uint16_t itemId, uint8_t subType, uint16_t amount, bool ignoreEquipped);
+    void sendBuyItem(uint16_t itemId, uint16_t subType, uint16_t amount, bool ignoreCapacity, bool buyWithBackpack);
+    void sendSellItem(uint16_t itemId, uint16_t subType, uint16_t amount, bool ignoreEquipped);
     void sendCloseNpcTrade();
     void sendRequestTrade(const Position& pos, uint16_t thingId, uint8_t stackpos, uint32_t creatureId);
     void sendInspectTrade(bool counterOffer, uint8_t index);

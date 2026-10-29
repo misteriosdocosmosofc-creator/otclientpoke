@@ -24,6 +24,7 @@
 #include "item.h"
 #include "protocolgame.h"
 #include "pkalogin.h"
+#include "pkanpctrade.h"
 #include "framework/net/outputmessage.h"
 #include "protocolcodes.h"
 #include "thingtypemanager.h"
@@ -443,12 +444,20 @@ void ProtocolGame::sendInspectNpcTrade(const uint16_t itemId, const uint16_t cou
     send(msg);
 }
 
-void ProtocolGame::sendBuyItem(const uint16_t itemId, const uint8_t subType, const uint16_t amount, const bool ignoreCapacity, const bool buyWithBackpack)
+void ProtocolGame::sendBuyItem(const uint16_t itemId, const uint16_t subType, const uint16_t amount, const bool ignoreCapacity, const bool buyWithBackpack)
 {
     const auto& msg = std::make_shared<OutputMessage>();
     addOpcode(msg, Proto::ClientBuyItem);
+    if (g_game.isPokeAllianceProtocol()) {
+        PkaNpcTrade::writeTransaction(*msg, itemId, subType, amount);
+        // The original PKA UI always sends both legacy flags cleared.
+        msg->addU8(0);
+        msg->addU8(0);
+        send(msg);
+        return;
+    }
     msg->addU16(itemId);
-    msg->addU8(subType);
+    msg->addU8(static_cast<uint8_t>(subType));
     if (g_game.getFeature(Otc::GameDoubleShopSellAmount))
         msg->addU16(amount);
     else
@@ -458,12 +467,18 @@ void ProtocolGame::sendBuyItem(const uint16_t itemId, const uint8_t subType, con
     send(msg);
 }
 
-void ProtocolGame::sendSellItem(const uint16_t itemId, const uint8_t subType, const uint16_t amount, const bool ignoreEquipped)
+void ProtocolGame::sendSellItem(const uint16_t itemId, const uint16_t subType, const uint16_t amount, const bool ignoreEquipped)
 {
     const auto& msg = std::make_shared<OutputMessage>();
     addOpcode(msg, Proto::ClientSellItem);
+    if (g_game.isPokeAllianceProtocol()) {
+        PkaNpcTrade::writeTransaction(*msg, itemId, subType, amount);
+        msg->addU8(0);
+        send(msg);
+        return;
+    }
     msg->addU16(itemId);
-    msg->addU8(subType);
+    msg->addU8(static_cast<uint8_t>(subType));
     if (g_game.getFeature(Otc::GameDoubleShopSellAmount))
         msg->addU16(amount);
     else

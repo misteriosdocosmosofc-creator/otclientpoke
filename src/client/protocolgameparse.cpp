@@ -31,6 +31,7 @@
 #include "protocolgame.h"
 #include "protocolcodes.h"
 #include "pkaprotocol.h"
+#include "pkanpctrade.h"
 #include "pkamovementtrace.h"
 #include "luavaluecasts_client.h"
 #include "map.h"
@@ -1999,8 +2000,18 @@ void ProtocolGame::parseOpenNpcTrade(const InputMessagePtr& msg)
         msg->getString(); // currency name
     }
 
+    std::vector<std::tuple<ItemPtr, std::string, uint32_t, uint64_t, uint64_t>> items;
+    if (g_game.isPokeAllianceProtocol()) {
+        for (auto& offer : PkaNpcTrade::readOffers(*msg)) {
+            auto item = Item::create(offer.id);
+            item->setCountOrSubType(offer.subtype);
+            items.emplace_back(item, std::move(offer.name), offer.weight, offer.buyPrice, offer.sellPrice);
+        }
+        g_game.processOpenNpcTrade(items);
+        return;
+    }
+
     const uint16_t listCount = g_game.getClientVersion() >= 900 ? msg->getU16() : msg->getU8();
-    std::vector<std::tuple<ItemPtr, std::string, uint32_t, uint32_t, uint32_t>> items;
 
     const auto normalizeNpcTradePrice = [](const uint32_t price) {
         return price == UINT32_MAX ? 0 : price;
@@ -2037,8 +2048,15 @@ void ProtocolGame::parsePlayerGoods(const InputMessagePtr& msg) const
             money = msg->getU32();
     }
 
+    std::vector<std::tuple<ItemPtr, uint32_t>> goods;
+    if (g_game.isPokeAllianceProtocol()) {
+        for (const auto& entry : PkaNpcTrade::readGoods(*msg))
+            goods.emplace_back(Item::create(entry.id), entry.amount);
+        g_game.processPlayerGoods(money, goods);
+        return;
+    }
+
     const uint8_t itemsListSize = g_game.getClientVersion() >= 1334 ? msg->getU16() : msg->getU8();
-    std::vector<std::tuple<ItemPtr, uint16_t>> goods;
 
     for (auto i = 0; i < itemsListSize; ++i) {
         const uint16_t itemId = msg->getU16();

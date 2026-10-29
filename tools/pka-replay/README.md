@@ -1,5 +1,11 @@
 # PKA offline coverage
 
+For NPC shops disconnecting with error 71, see
+[`pka-npc-trade.md`](../../docs/development/pka-npc-trade.md).
+`npc_trade.cpp` checks the shared PKA shop readers, wider prices/amounts,
+transaction field bytes and truncated inputs. `npc_trade_android.lua` validates
+an explicitly staged offline shop replay and the Buy/Sell UI in the engine.
+
 For the character disappearing after dismounting, see
 [`pka-signed-displacement.md`](../../docs/development/pka-signed-displacement.md).
 `generate_displacements.py` exports the private DAT's signed offsets;
