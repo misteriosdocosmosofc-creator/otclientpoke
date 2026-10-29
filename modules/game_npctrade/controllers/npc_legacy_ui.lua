@@ -39,10 +39,36 @@ local playerItems = {}
 local selectedItem = nil
 
 local cancelNextRelease = nil
+local npcWindowParent = nil
+
+local function fitNpcTradeWindow()
+    if not npcWindow or not g_platform.isMobile() then
+        return
+    end
+    local parent = npcWindow:getParent()
+    if not parent then return end
+    local area = parent:getPaddingRect()
+    local width = math.min(550, area.width - 12)
+    local height = math.min(515, area.height - 12)
+    npcWindow:breakAnchors()
+    npcWindow:setSize({width = width, height = height})
+    -- Give space back to the scrolling catalog, preserving the footer and
+    -- quantity/options controls rather than letting them leave the screen.
+    npcWindow:getChildById('itemListFrame'):setHeight(math.max(36, 250 - (515 - height)))
+    npcWindow:getChildById('closeTopButton'):show()
+    npcWindow:setPosition({x = area.x + math.floor((area.width - width) / 2),
+                           y = area.y + math.floor((area.height - height) / 2)})
+end
 
 function controllerNpcTrader:legacy_init()
     npcWindow = g_ui.displayUI('/game_npctrade/templates/npctrade_legacy')
     npcWindow:setVisible(false)
+    if npcWindowParent then disconnect(npcWindowParent, {onGeometryChange = fitNpcTradeWindow}) end
+    npcWindowParent = npcWindow:getParent()
+    if g_platform.isMobile() then
+        connect(npcWindowParent, {onGeometryChange = fitNpcTradeWindow})
+        fitNpcTradeWindow()
+    end
 
     itemsPanel = npcWindow:recursiveGetChildById('itemsPanel')
     searchText = npcWindow:recursiveGetChildById('searchText')
@@ -89,6 +115,8 @@ end
 
 function controllerNpcTrader:legacy_terminate()
     initialized = false
+    if npcWindowParent then disconnect(npcWindowParent, {onGeometryChange = fitNpcTradeWindow}) end
+    npcWindowParent = nil
     if npcWindow then
         npcWindow:destroy()
     end
@@ -101,6 +129,7 @@ end
 
 function controllerNpcTrader:legacy_show()
     if g_game.isOnline() and npcWindow then
+        fitNpcTradeWindow()
         if tradeItems[BUY] and #tradeItems[BUY] > 0 then
             radioTabs:selectWidget(buyTab)
         else

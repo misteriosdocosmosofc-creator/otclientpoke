@@ -56,3 +56,20 @@ manifests, logs, screenshots and preference backups outside version control.
 
 An offline replay establishes parsing and UI behavior. A manual NPC interaction
 on the server remains the final validation of the installed correction.
+
+## Mobile window size and closing
+
+The manual interaction confirmed the protocol correction on 2026-10-28, then
+exposed a separate UI problem: the legacy window's fixed 515-unit height put
+its footer outside the mobile viewport. The mobile layout now limits the
+window to its parent's available area with a six-unit margin. The scrolling
+catalog shrinks to keep the quantity/options controls and footer on screen.
+Opening the window or resizing the parent reapplies the fit. Desktop sizing
+is preserved.
+
+A mobile X button is also available in the title bar; both it and the footer
+use the existing NPC close handler. The Android regression checks the window
+and both close buttons against the actual viewport, invokes both close
+callbacks with outgoing requests intercepted, verifies the window hides while
+the player stays online, and reopens it for the screenshot. This Lua/OTUI
+change can be synchronized to active `game_data` without rebuilding the APK.

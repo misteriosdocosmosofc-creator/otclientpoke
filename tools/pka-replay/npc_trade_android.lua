@@ -59,6 +59,29 @@ connect(g_app, {onRun = function()
         assert(sell:isChecked() and window:recursiveGetChildById('itemsPanel'):getChildCount() > 0)
         buy.onClick(buy)
         assert(buy:isChecked() and window:recursiveGetChildById('itemsPanel'):getChildCount() > 0)
+        if g_platform.isMobile() and window:getChildById('closeTopButton') then
+          local area = window:getParent():getPaddingRect()
+          local function contained(widget)
+            local rect = widget:getRect()
+            return rect.x >= area.x and rect.y >= area.y and
+              rect.x + rect.width <= area.x + area.width and rect.y + rect.height <= area.y + area.height
+          end
+          assert(contained(window), 'NPC window exceeds the mobile viewport')
+          local top, footer = window:getChildById('closeTopButton'), window:getChildById('closeFooterButton')
+          assert(top:isVisible() and contained(top) and contained(footer), 'Close control is outside the screen')
+          local function checkClose(button)
+            local original, calls = g_game.closeNpcTrade, 0
+            g_game.closeNpcTrade = function() calls = calls + 1 end
+            local ok, problem = pcall(function() button.onClick(button) end)
+            g_game.closeNpcTrade = original
+            assert(ok, tostring(problem))
+            assert(calls == 1 and not window:isVisible() and g_game.isOnline())
+            modules.game_npctrade.controllerNpcTrader:legacy_show()
+          end
+          checkClose(top)
+          checkClose(footer)
+          g_logger.info('[npc-trade-probe] mobile window and both close controls fit; X/footer close and reopen passed')
+        end
         g_logger.info('[npc-trade-probe] 335 real offers, 9 goods, prices/amounts, close/reopen and Buy/Sell tabs passed')
       end)
       if not passed then g_logger.error('[npc-trade-probe] ' .. tostring(problem)) end

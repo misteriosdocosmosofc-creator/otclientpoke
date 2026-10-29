@@ -59,6 +59,7 @@ MainWindow
     margin-top: 5
 
   FlatPanel
+    id: itemListFrame
     height: 250
     anchors.left: parent.left
     anchors.right: parent.right
@@ -263,8 +264,21 @@ MainWindow
     @onClick: modules.game_npctrade.onTradeClick()
 
   Button
+    id: closeFooterButton
     !text: tr('Close')
     width: 64
     anchors.right: parent.right
     anchors.bottom: parent.bottom
+    @onClick: modules.game_npctrade.closeNpcTrade()
+
+  Button
+    id: closeTopButton
+    anchors.top: parent.top
+    anchors.right: parent.right
+    margin-top: -32
+    margin-right: -10
+    size: 28 26
+    text: X
+    !tooltip: tr('Close')
+    visible: false
     @onClick: modules.game_npctrade.closeNpcTrade()
