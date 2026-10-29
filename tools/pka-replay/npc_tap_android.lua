@@ -12,11 +12,12 @@ connect(g_app, {onRun = function()
     if CharacterList and CharacterList.isVisible() then CharacterList.hide() end
     scheduleEvent(function()
       local mod, interface = modules.game_npctrade, modules.game_interface
-      local saved = {talk = g_game.talk, channel = g_game.talkChannel, lookup = g_map.getCreatureById,
+      local saved = {talk = g_game.talk, private = g_game.talkPrivate, channel = g_game.talkChannel, lookup = g_map.getCreatureById,
         modifiers = g_keyboard.getModifiers, shortcut = modules.game_shortcuts.getShortcut, look = g_game.look}
       local function finish(ok, problem)
         mod.cancelNpcTradeRequest()
         g_game.talk, g_game.talkChannel, g_game.look = saved.talk, saved.channel, saved.look
+        g_game.talkPrivate = saved.private
         g_map.getCreatureById, g_keyboard.getModifiers = saved.lookup, saved.modifiers
         modules.game_shortcuts.getShortcut = saved.shortcut
         if not ok then g_logger.error('[npc-tap-probe] ' .. tostring(problem)) end
@@ -31,10 +32,20 @@ connect(g_app, {onRun = function()
       function npc:isNpc() return true end
       local greetings, trades, looks = 0, 0, 0
       local shortcut = ''
-      g_game.talk = function(text) assert(text == 'hi'); greetings = greetings + 1 end
-      g_game.talkChannel = function(mode, channel, text)
-        assert(mode == MessageModes.NpcTo and channel == 0 and text == 'trade')
-        trades = trades + 1
+      local console = modules.game_console
+      local oldNpcTab = console.getTab('NPCs')
+      if oldNpcTab then console.consoleTabBar:removeTab(oldNpcTab) end
+      assert(not console.getTab('NPCs'))
+      local localTab = assert(console.getTab(tr('Local Chat')))
+      local localBuffer = console.consoleTabBar:getTabPanel(localTab):getChildById('consoleBuffer')
+      local localLines = localBuffer:getChildCount()
+      g_game.talk = function() error('NPC greeting leaked into local Say') end
+      g_game.talkChannel = function() error('Expected the actual NPC console/private route') end
+      g_game.talkPrivate = function(mode, receiver, text)
+        assert(mode == MessageModes.NpcTo and receiver == 'NPCs')
+        if text == 'hi' then greetings = greetings + 1
+        elseif text == 'trade' then trades = trades + 1
+        else error('Unexpected NPC text') end
       end
       g_game.look = function(thing) assert(thing == npc); looks = looks + 1 end
       g_keyboard.getModifiers = function() return KeyboardNoModifier end
@@ -48,6 +59,10 @@ connect(g_app, {onRun = function()
       end
       local ok, problem = pcall(function()
         assert(g_game.isOnline() and tap() and greetings == 1 and trades == 0)
+        local tab = assert(console.getTab('NPCs'))
+        assert(tab.npcChat and console.getCurrentTab() == tab and localBuffer:getChildCount() == localLines)
+        local buffer = console.consoleTabBar:getTabPanel(tab):getChildById('consoleBuffer')
+        assert(buffer:getLastChild():getText():sub(-2) == 'hi', 'Greeting was not echoed in NPC chat')
         assert(tap() and greetings == 1, 'Repeated tap sent another greeting')
         reply('Another NPC', MessageModes.NpcFrom)
         reply(npc.name, MessageModes.Say)
@@ -58,6 +73,9 @@ connect(g_app, {onRun = function()
       scheduleEvent(function()
         local ok, problem = pcall(function()
           assert(trades == 1 and greetings == 1)
+          local tab = console.getTab('NPCs')
+          local buffer = console.consoleTabBar:getTabPanel(tab):getChildById('consoleBuffer')
+          assert(buffer:getLastChild():getText():sub(-5) == 'trade', 'Trade was not echoed in NPC chat')
           reply(npc.name, MessageModes.NpcFrom)
           assert(tap() and greetings == 1, 'Trade handshake repeated')
           mod.cancelNpcTradeRequest()
@@ -94,7 +112,7 @@ connect(g_app, {onRun = function()
             local ok, problem = pcall(function()
               assert(trades == 1 and g_game.isOnline())
               assert(g_app.getMaxFps() == 60 and not g_sounds.isAudioEnabled())
-              g_logger.info('[npc-tap-probe] input, one greeting/trade, selected NPC reply, debounce, cancellation, range/profile and Look guards passed')
+              g_logger.info('[npc-tap-probe] NPC tab created/focused, private hi/trade echoed, no local Say; input/debounce/cancellation/range/profile/Look guards passed')
             end)
             finish(ok, problem)
           end, 50)

@@ -98,3 +98,13 @@ events inside the Android client, with greeting/trade/look calls intercepted.
 It checks selected-NPC replies, one greeting/trade, repeated taps, cancellation,
 range/floor/removal/profile guards, a direct shop response and explicit Look.
 The actual server response to the gesture still requires a manual test.
+
+The user confirmed the one-tap shop interaction, then requested that the initial
+greeting stop appearing in Local Chat. Both `hi` and `trade` now go through the
+existing console's NPC tab: create/reuse and select `NPCs`, mark it as NPC chat,
+and send through `console.sendMessage`. This uses `MessageModes.NpcTo` and also
+echoes the outgoing messages in that tab. If the console is unavailable, the
+fallback still uses NPC-private routing. The updated Android regression removes
+the fixture's NPC tab, checks recreation/focus, verifies the private mode and
+both local echoes, and rejects any local Say greeting. Messages remain
+intercepted in the offline test; a live NPC greeting is validated separately.

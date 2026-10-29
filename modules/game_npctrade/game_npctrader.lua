@@ -28,6 +28,19 @@ local function inNpcRange(npc)
     return p and n and p.z == n.z and math.max(math.abs(p.x - n.x), math.abs(p.y - n.y)) <= 3
 end
 
+local function sendNpcTradeMessage(text)
+    local console = modules.game_console
+    if console and console.addTab and console.sendMessage then
+        local tab = console.addTab('NPCs', true)
+        tab.npcChat = true
+        tab.channelId = nil
+        console.sendMessage(text, tab)
+    else
+        -- Preserve private NPC routing even if the chat module is unavailable.
+        g_game.talkChannel(MessageModes.NpcTo, 0, text)
+    end
+end
+
 function requestNpcTrade(npc)
     if not g_platform.isMobile() or not g_game.isPokeAllianceProtocol() or not g_game.isOnline() or
        not npc or not npc:isNpc() or not inNpcRange(npc) then return false end
@@ -39,7 +52,7 @@ function requestNpcTrade(npc)
         if tapTrade == request then cancelTapTrade() end
     end, 5000)
     g_game.getLocalPlayer():stopAutoWalk()
-    g_game.talk('hi')
+    sendNpcTradeMessage('hi')
     return true
 end
 
@@ -58,7 +71,7 @@ local function onTapNpcTalk(name, level, mode)
             return
         end
         request.sentTrade = true
-        g_game.talkChannel(MessageModes.NpcTo, 0, 'trade')
+        sendNpcTradeMessage('trade')
     end)
 end
 
