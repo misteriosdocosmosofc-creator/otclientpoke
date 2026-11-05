@@ -45,7 +45,7 @@ jobs:
       - name: Configure native OpenGL client
         shell: pwsh
         run: |
-          cmake --preset windows-release -DTOGGLE_BIN_FOLDER=ON -DOPTIONS_ENABLE_IPO=OFF -DOPTIONS_ENABLE_SCCACHE=OFF -DVCPKG_INSTALL_OPTIONS= -DCMAKE_BUILD_TYPE=Release
+          cmake --preset windows-release -DTOGGLE_BIN_FOLDER=ON -DOPTIONS_ENABLE_IPO=OFF -DOPTIONS_ENABLE_SCCACHE=OFF -DVCPKG_INSTALL_OPTIONS= -DCMAKE_BUILD_TYPE=RelWithDebInfo
           if ($LASTEXITCODE) { throw 'CMake configure failed' }
       - name: Build
         shell: pwsh

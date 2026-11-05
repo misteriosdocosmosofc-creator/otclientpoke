@@ -53,7 +53,8 @@ def main():
         dst = args.output / 'data/things' / version
         dst.mkdir(parents=True)
         for name in required:
-            shutil.copy2(args.assets / 'data/things' / name, dst / name)
+            runtime_name = {'things.dat': 'Tibia.dat', 'things.spr': 'Tibia.spr'}.get(name, name)
+            shutil.copy2(args.assets / 'data/things' / name, dst / runtime_name)
     for group in ('pokemons', 'conditions'):
         shutil.copytree(args.images / 'data/images' / group, args.output / 'data/images' / group, dirs_exist_ok=True)
     init = args.output / 'init.lua'
