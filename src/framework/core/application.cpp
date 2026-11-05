@@ -94,7 +94,7 @@ void Application::init(std::vector<std::string>& args, ApplicationContext* conte
     m_startupArgs = args;
 
     // mobile testing
-    if (startupOptions.find("-mobile") != std::string::npos) {
+    if (std::find(args.begin() + 1, args.end(), "-mobile") != args.end()) {
         g_platform.setDevice({ Mobile, Android });
     }
 

@@ -66,7 +66,7 @@ def main():
             raise ValueError(f'Unexpected init.lua: {before}')
         text = text.replace(before, after)
     init.write_text(text, encoding='utf-8')
-    (args.output / 'Iniciar.cmd').write_text('@echo off\ncd /d "%~dp0"\nstart "" "%~dp0otclient.exe" --user-dir "%~dp0profile"\n', encoding='ascii')
+    (args.output / 'Iniciar.cmd').write_text('@echo off\ncd /d "%~dp0"\nstart "" "%~dp0otclient.exe" --user-dir=profile\n', encoding='ascii')
     (args.output / 'LEIA-ME.txt').write_text(
         'Cliente PokeAlliance para Windows x64 - primeira versao de teste\n\n'
         'Abra Iniciar.cmd. O perfil local fica em profile. Login manual.\n'
