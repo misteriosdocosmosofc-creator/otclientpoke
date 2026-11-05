@@ -92,6 +92,7 @@ function init()
 end
 
 function terminate()
+  PkaBot.terminate()
   save()
   clear()
 
@@ -210,6 +211,13 @@ function refresh()
   save()
   clear()
 
+  if PkaBot.isActive() then
+    botWindow:hide()
+    editWindow:hide()
+    PkaBot.online()
+    return
+  end
+
   loadConfigsList()
   if not configList.options or #configList.options == 0 then
     statusLabel:setOn(true)
@@ -325,6 +333,11 @@ function onMiniWindowClose()
 end
 
 function toggle()
+  if PkaBot.isActive() then
+    botWindow:hide()
+    PkaBot.toggle()
+    return
+  end
   if botButton:isOn() then
     botWindow:close()
     botButton:setOn(false)
@@ -337,6 +350,11 @@ function toggle()
 end
 
 function online()
+  if PkaBot.isActive() then
+    botWindow:hide()
+    refresh()
+    return
+  end
   botWindow:setupOnStart()
   if not (modules.client_profiles and modules.client_profiles.ChangedProfile) then
     scheduleEvent(refresh, 20)
@@ -344,6 +362,7 @@ function online()
 end
 
 function offline()
+  PkaBot.offline()
   save()
   clear()
   editWindow:hide()
@@ -356,6 +375,7 @@ function onError(message)
 end
 
 function edit()
+  if PkaBot.isActive() then PkaBot.toggle() return end
   local configs = g_resources.listDirectoryFiles("/bot", false, false)
   editWindow.manager.upload.config:clearOptions()
   for i=1,#configs do

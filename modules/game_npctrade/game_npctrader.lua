@@ -42,7 +42,7 @@ local function sendNpcTradeMessage(text)
 end
 
 function requestNpcTrade(npc)
-    if not g_platform.isMobile() or not g_game.isPokeAllianceProtocol() or not g_game.isOnline() or
+    if not g_game.isPokeAllianceProtocol() or not g_game.isOnline() or
        not npc or not npc:isNpc() or not inNpcRange(npc) then return false end
     if tapTrade and tapTrade.id == npc:getId() then return true end
     cancelTapTrade()

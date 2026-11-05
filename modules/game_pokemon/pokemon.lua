@@ -263,6 +263,17 @@ local function createWindows()
   down:addAnchor(AnchorTop, 'parent', AnchorTop)
   down:addAnchor(AnchorRight, 'parent', AnchorRight)
   down.onClick = function() flyHeight(true) end
+  if not g_platform.isMobile() then
+    fly.title:setText('Comandos  ::')
+    local order = g_ui.createWidget('Button', fly.contents)
+    order:setText('Ordenar Pokemon')
+    order:setSize({width = 154, height = 30})
+    order:addAnchor(AnchorTop, 'parent', AnchorTop)
+    order:addAnchor(AnchorLeft, 'parent', AnchorLeft)
+    order:setMarginTop(39)
+    order.onClick = startOrder
+    resizeWindow(fly, 164, 72)
+  end
   renderRoster()
   renderMoves()
   renderConditions()
@@ -336,7 +347,9 @@ function startOrder()
   if not isPka() or not g_game.isOnline() then return end
   -- Original ACTION_BAR_ORDER and ORDER_SELF both use item 0x0d7d.
   modules.game_interface.startUseWith(Item.create(0x0d7d))
-  warn('Comando: toque no destino ou no seu personagem. Toque fora do mapa para cancelar.')
+  warn(g_platform.isMobile() and
+    'Comando: toque no destino ou no seu personagem. Toque fora do mapa para cancelar.' or
+    'Comando: clique no destino ou no seu personagem. Escape cancela.')
 end
 
 function flyHeight(down)
@@ -412,7 +425,7 @@ function parseOpcode(protocol, opcode, msg)
 end
 
 function onGameStart()
-  enabled = g_platform.isMobile() and isPka()
+  enabled = isPka()
   if enabled then
     createWindows()
     for _, window in pairs(windows) do window:show() window:bindRectToParent() end

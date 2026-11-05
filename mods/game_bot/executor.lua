@@ -360,7 +360,7 @@ function executeBot(config, storage, tabs, msgCallback, saveConfigCallback, relo
       end,
       onOpenChannel = function(channelId, channelName)
         for i, callback in ipairs(context._callbacks.onOpenChannel) do
-          callback(channels)
+          callback(channelId, channelName)
         end
       end,
       onCloseChannel = function(channelId)

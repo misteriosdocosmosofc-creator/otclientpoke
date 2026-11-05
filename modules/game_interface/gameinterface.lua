@@ -871,6 +871,10 @@ function createThingMenu(menuPosition, lookThing, useThing, creatureThing)
             if creatureThing:getPosition().z == localPosition.z then
                 if creatureThing:isNpc() then
                     menu:addOption(tr('Talk'), function()
+                        local npcTrade = modules.game_npctrade
+                        if g_game.isPokeAllianceProtocol() and npcTrade and npcTrade.requestNpcTrade then
+                            return npcTrade.requestNpcTrade(creatureThing)
+                        end
                         g_game.talk("hi")
                     end)
                 end

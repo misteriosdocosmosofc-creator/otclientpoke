@@ -1,0 +1,176 @@
+PkaBotLabel < Label
+  height: 25
+  text-wrap: true
+  text-align: left
+  margin-bottom: 4
+
+PkaBotButton < Button
+  height: 32
+  margin-bottom: 5
+
+PkaBotInput < BotTextEdit
+  height: 32
+  margin-bottom: 5
+
+PkaBotChoice < ComboBox
+  height: 32
+  margin-bottom: 5
+  &parentWidth: true
+
+PkaBotCheck < CheckBox
+  height: 30
+  image-rect: 0 9 12 12
+  margin-bottom: 4
+
+PkaBotMove < Panel
+  height: 54
+  margin-bottom: 3
+
+  PkaBotCheck
+    id: enabled
+    anchors.top: parent.top
+    anchors.left: parent.left
+    width: 26
+
+  Label
+    id: name
+    anchors.top: parent.top
+    anchors.left: enabled.right
+    anchors.right: stun.left
+    height: 30
+    text-wrap: true
+    margin-right: 4
+
+  PkaBotCheck
+    id: stun
+    text: Stun
+    tooltip: Marque somente se voce confirmou o efeito
+    width: 60
+    anchors.top: parent.top
+    anchors.right: up.left
+    margin-right: 4
+
+  Button
+    id: up
+    text: ^
+    tooltip: Subir na sequencia
+    size: 32 30
+    anchors.top: parent.top
+    anchors.right: parent.right
+
+  Label
+    id: cooldown
+    height: 18
+    anchors.top: enabled.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    margin-left: 18
+    color: #aaaaaa
+
+PkaBotWindow < MainWindow
+  id: pkaBotWindow
+  text: Bot PokeAlliance
+  size: 520 370
+  @onEscape: modules.game_bot.PkaBot.hide()
+
+  Button
+    id: closeTop
+    text: X
+    size: 30 26
+    anchors.top: parent.top
+    anchors.right: parent.right
+    @onClick: modules.game_bot.PkaBot.hide()
+
+  Label
+    id: profile
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: closeTop.left
+    height: 26
+    text: Arcanine
+
+  Panel
+    id: tabs
+    anchors.top: profile.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    height: 32
+    layout:
+      type: horizontalBox
+      spacing: 3
+
+  BotPanel
+    id: body
+    anchors.top: tabs.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: footer.top
+    margin-top: 6
+    margin-bottom: 6
+
+  Panel
+    id: footer
+    anchors.bottom: parent.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    height: 64
+
+    Label
+      id: status
+      anchors.left: parent.left
+      anchors.top: parent.top
+      anchors.right: parent.right
+      height: 26
+      text-wrap: true
+      text: Pausado
+
+    Button
+      id: combo
+      anchors.left: parent.left
+      anchors.bottom: parent.bottom
+      size: 120 32
+      text: Combo uma vez
+
+    Button
+      id: pause
+      anchors.left: combo.right
+      anchors.bottom: parent.bottom
+      margin-left: 5
+      size: 80 32
+      text: Pausar
+
+    Button
+      id: compact
+      anchors.right: parent.right
+      anchors.bottom: parent.bottom
+      size: 105 32
+      text: Compactar
+
+PkaBotHud < MainWindow
+  id: pkaBotHud
+  text: Hunt PKA
+  size: 280 145
+  @onEscape: modules.game_bot.PkaBot.hide()
+
+  Label
+    id: state
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: parent.top
+    height: 45
+    text-wrap: true
+    text: Pausado
+
+  Button
+    id: pause
+    anchors.left: parent.left
+    anchors.bottom: parent.bottom
+    size: 100 32
+    text: Pausar
+
+  Button
+    id: configure
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    size: 110 32
+    text: Configurar

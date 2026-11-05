@@ -16,7 +16,7 @@ context.callback = function(callbackType, callback)
   end
 
   local callbackData = {}
-  table.insert(context._callbacks[callbackType], function(...)
+  local registered = function(...)
     if not callbackData.delay or callbackData.delay < context.now then
       local prevExecution = context._currentExecution
       context._currentExecution = callbackData
@@ -28,13 +28,13 @@ context.callback = function(callbackType, callback)
       end
       context._currentExecution = prevExecution
     end
-  end)
-  local cb = context._callbacks[callbackType]
+  end
+  table.insert(context._callbacks[callbackType], registered)
   return {
     remove = function()
       local index = nil
       for i, cb2 in ipairs(context._callbacks[callbackType]) do
-        if cb == cb2 then
+        if registered == cb2 then
           index = i
         end
       end
