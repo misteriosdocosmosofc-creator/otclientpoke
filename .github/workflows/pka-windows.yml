@@ -1,0 +1,61 @@
+name: PKA Windows Native
+
+on:
+  push:
+    branches: [codex/pka-windows]
+    paths:
+      - '.github/workflows/pka-windows.yml'
+      - 'src/**'
+      - 'cmake/**'
+      - 'CMakeLists.txt'
+      - 'CMakePresets.json'
+      - 'vcpkg.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 120
+    env:
+      VCPKG_BINARY_SOURCES: 'clear;files,C:\vcpkg-binary-cache,readwrite'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/cache@v4
+        with:
+          path: C:\vcpkg-binary-cache
+          key: pka-win64-v145-${{ hashFiles('vcpkg.json', 'overlay-ports/**', 'cmake/triplets/**') }}
+          restore-keys: pka-win64-v145-
+      - name: Prepare compiler and dependencies
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -prerelease -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (!$vs) { throw 'Visual C++ tools not found' }
+          Import-Module "$vs\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+          Enter-VsDevShell -VsInstallPath $vs -SkipAutomaticLocation -DevCmdArguments '-arch=x64 -host_arch=x64'
+          Get-ChildItem Env: | ForEach-Object { "$($_.Name)=$($_.Value)" >> $env:GITHUB_ENV }
+          git clone https://github.com/microsoft/vcpkg.git C:\pka-vcpkg
+          git -C C:\pka-vcpkg checkout (Get-Content vcpkg.json -Raw | ConvertFrom-Json).'builtin-baseline'
+          & C:\pka-vcpkg\bootstrap-vcpkg.bat -disableMetrics
+          if ($LASTEXITCODE) { throw 'vcpkg bootstrap failed' }
+          'VCPKG_ROOT=C:\pka-vcpkg' >> $env:GITHUB_ENV
+      - name: Configure native OpenGL client
+        shell: pwsh
+        run: |
+          cmake --preset windows-release -DTOGGLE_BIN_FOLDER=ON -DOPTIONS_ENABLE_IPO=OFF -DOPTIONS_ENABLE_SCCACHE=OFF -DVCPKG_INSTALL_OPTIONS= -DCMAKE_BUILD_TYPE=Release
+          if ($LASTEXITCODE) { throw 'CMake configure failed' }
+      - name: Build
+        shell: pwsh
+        run: |
+          cmake --build --preset windows-release --parallel 3
+          if ($LASTEXITCODE) { throw 'Build failed' }
+          @{ commit = '${{ github.sha }}'; platform = 'windows-x64'; renderer = 'OpenGL'; run = '${{ github.run_id }}' } | ConvertTo-Json | Set-Content build/windows-release/bin/build-info.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pka-windows-x64
+          path: build/windows-release/bin/
+          if-no-files-found: error
+          retention-days: 14
