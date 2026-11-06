@@ -56,6 +56,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: pka-windows-x64
-          path: build/windows-release/bin/
+          path: |
+            build/windows-release/bin/*.exe
+            build/windows-release/bin/*.dll
+            build/windows-release/bin/*.pdb
+            build/windows-release/bin/build-info.json
           if-no-files-found: error
           retention-days: 14

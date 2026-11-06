@@ -591,9 +591,9 @@ int LuaInterface::lua_dofile(lua_State* L)
         return g_lua.stackSize();
     } catch (stdext::exception& e) {
         g_lua.pushString(e.what());
-        scopedState.restore();
-        return lua_error(L);
     }
+    scopedState.restore();
+    return lua_error(L);
 }
 
 int LuaInterface::lua_dofiles(lua_State* L)
@@ -627,9 +627,9 @@ int LuaInterface::lua_loadfile(lua_State* L)
     } catch (stdext::exception& e) {
         g_lua.pushNil();
         g_lua.pushString(e.what());
-        scopedState.restore();
-        return lua_error(L);
     }
+    scopedState.restore();
+    return lua_error(L);
 }
 
 int LuaInterface::luaErrorHandler(lua_State* L)
@@ -664,6 +664,7 @@ int LuaInterface::luaCppFunctionCallback(lua_State* L)
         numRets = (*(funcPtr->get()))(&g_lua);
         --g_lua.m_cppCallbackDepth;
         assert(numRets == g_lua.stackSize());
+        return numRets;
     } catch (stdext::exception& e) {
         --g_lua.m_cppCallbackDepth;
         // cleanup stack
@@ -671,27 +672,25 @@ int LuaInterface::luaCppFunctionCallback(lua_State* L)
             g_lua.pop();
         numRets = 0;
         g_lua.pushString(fmt::format("C++ call failed: {}", g_lua.traceback(e.what())));
-        scopedState.restore();
-        return lua_error(L);
     } catch (const std::exception& e) {
         --g_lua.m_cppCallbackDepth;
         while (g_lua.stackSize() > 0)
             g_lua.pop();
         numRets = 0;
         g_lua.pushString(fmt::format("C++ std::exception: {}", g_lua.traceback(e.what())));
-        scopedState.restore();
-        return lua_error(L);
     } catch (...) {
         --g_lua.m_cppCallbackDepth;
         while (g_lua.stackSize() > 0)
             g_lua.pop();
         numRets = 0;
         g_lua.pushString(g_lua.traceback("Unknown C++ exception"));
-        scopedState.restore();
-        return lua_error(L);
     }
 
-    return numRets;
+    // LuaJIT uses native exception unwinding on Windows. Raising a Lua error
+    // inside a C++ catch can unwind its cleanup twice (MSVC string double-free).
+    // Finish the C++ handler before transferring control back to Lua's pcall.
+    scopedState.restore();
+    return lua_error(L);
 }
 
 int LuaInterface::luaCollectCppFunction(lua_State* L)
