@@ -38,8 +38,13 @@ The bot retains its manually triggered assisted combo and does not start a hunt.
 `tools/windows/probe.lua` is an offline integration probe for the real Windows
 engine. Use a separate test user directory containing the script as
 `pka_windowsrc.lua` and the private replay at `records/npc-trade.cam`.
+Set `locale: pt` in that test directory's `config.otml` before starting so the
+first-run language dialog does not cover the screenshots. Launch with
+`otclient.exe --user-dir=<absolute-test-directory>`; the equals sign is required.
 It checks world/map loading, desktop windows, minimize, cooldown gating, private
-NPC greeting and idle bot state. Outbound tested actions are intercepted.
+NPC greeting and idle bot state, plus repeated C++/Lua error unwinding on Windows.
+Outbound tested actions are intercepted. It saves `windows-probe.png` and
+`windows-map.png` in the test directory, then exits automatically.
 The replay and all generated test files stay private and outside the package.
 
 A passing offline replay does not establish current server compatibility. A
