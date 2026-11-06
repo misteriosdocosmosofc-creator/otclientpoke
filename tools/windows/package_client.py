@@ -2,6 +2,7 @@
 
 Only Git-listed runtime sources are copied. Private assets stay local; account
 settings, captures, keys and logs are never pulled from the Android workspace.
+The private pre-auth file must be supplied explicitly for this local installation.
 """
 import argparse
 import hashlib
@@ -22,10 +23,15 @@ def main():
     parser.add_argument('--binary', type=Path, required=True)
     parser.add_argument('--assets', type=Path, required=True)
     parser.add_argument('--images', type=Path, required=True)
+    parser.add_argument('--preauth', type=Path, required=True, help='Private local PKA pre-auth file; never commit it')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError('Use a new output directory to preserve existing profiles')
+    preauth = args.preauth.read_bytes()
+    fields = preauth.decode('utf-8').split('\n')
+    if len(fields) != 4 or any(not field or '\r' in field for field in fields):
+        raise ValueError('Pre-auth must contain exactly four non-empty LF-separated fields without a trailing newline')
     required = ['things.dat', 'things.spr', 'things.otfi', 'things.otml']
     for name in required:
         path = args.assets / 'data/things' / name
@@ -36,6 +42,7 @@ def main():
     if not executable.is_file():
         raise FileNotFoundError(executable)
     args.output.mkdir(parents=True)
+    (args.output / 'pokealliance-preauth.txt').write_bytes(preauth)
     files = subprocess.check_output(['git', '-C', str(args.source), 'ls-files', '-z']).decode().split('\0')
     roots = ('data/', 'modules/', 'mods/')
     root_files = {'init.lua', 'otclientrc.lua', 'config.ini', 'cacert.pem', 'LICENSE', 'LICENSE.txt'}

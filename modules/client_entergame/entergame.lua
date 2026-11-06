@@ -640,7 +640,7 @@ end
 
 function EnterGame.tryHttpLogin(clientVersion, httpLogin)
     g_game.setClientVersion(clientVersion)
-    g_game.setProtocolVersion(g_game.getClientProtocolVersion(clientVersion))
+    g_game.setProtocolVersion(g_game.getClientProtocolVersion(clientVersion, G.host))
     g_game.chooseRsa(G.host)
     if not modules.game_things.isLoaded() then
         if loadBox then
@@ -928,7 +928,7 @@ function EnterGame.doLogin()
         })
 
         g_game.setClientVersion(clientVersion)
-        g_game.setProtocolVersion(g_game.getClientProtocolVersion(clientVersion))
+        g_game.setProtocolVersion(g_game.getClientProtocolVersion(clientVersion, G.host))
         g_game.chooseRsa(G.host)
 
         if modules.game_things.isLoaded() then
@@ -1035,7 +1035,7 @@ function EnterGame.setUniqueServer(host, port, protocol, windowWidth, windowHeig
     -- it needs images of outfits
     -- so it can display the boosted creature
     g_game.setClientVersion(clientVersion)
-    g_game.setProtocolVersion(g_game.getClientProtocolVersion(clientVersion))
+    g_game.setProtocolVersion(g_game.getClientProtocolVersion(clientVersion, host))
 end
 
 function EnterGame.setServerInfo(message)

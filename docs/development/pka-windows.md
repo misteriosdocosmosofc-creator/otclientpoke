@@ -19,7 +19,9 @@ toolchain described in `docs/building/windows-(cmake).md`.
 
 Run `python tools/windows/package_client.py --help` for the explicit inputs.
 Supply authenticated/extracted game resources from the user's current client
-copy and the downloaded build artifact. The destination must be new.
+copy and the downloaded build artifact. The destination must be new. Supply the
+private local pre-auth file explicitly with `--preauth`; it is required by the
+world handshake and must never be committed or uploaded with public artifacts.
 
 The assembler copies Git-listed runtime files, adds DAT/SPR/OTFI/OTML under
 `data/things/860/` and `data/things/1511/`, and adds Pokemon/condition images at
@@ -27,6 +29,11 @@ their expected paths. It creates a hash manifest and `Iniciar.cmd`. This launche
 uses a local `profile` directory through `--user-dir`, independent of Android and
 other OTClient installations. No account settings or captured sessions are copied.
 The client-assets download security defaults remain unchanged.
+
+Fresh profiles select wire protocol 854 for PokeAlliance hosts with 860 assets.
+Other hosts keep their normal protocol mapping; an explicit `client-protocol`
+setting still takes precedence. The PKA selection enables its OS 20, U16 opcodes
+and HTTPS world-ticket login path without depending on an old Android config.
 
 Pokemon windows are enabled for the PKA profile on desktop, with mouse-driven
 selection/skills and an order button in the Commands window. Desktop NPC greeting
@@ -49,3 +56,9 @@ The replay and all generated test files stay private and outside the package.
 
 A passing offline replay does not establish current server compatibility. A
 manual login and gameplay test is still required, especially after server updates.
+
+`tools/windows/login_probe.lua` checks a fresh profile through the HTTP login and
+character-selection code with synthetic credentials and intercepted HTTP/world
+connections. Install it as `pka_windowsrc.lua` in another isolated user directory.
+It verifies host mapping, private pre-auth availability, OS 20, U16 opcodes and
+use of the HTTPS ticket instead of the account password; it exits automatically.

@@ -117,7 +117,7 @@ g_gameConfig.setLastSupportedVersion(supportedClients[#supportedClients])
 -- Important: Use getClientVersion for specific protocol
 -- features to ensure we are using the proper version.
 
-function g_game.getClientProtocolVersion(client)
+function g_game.getClientProtocolVersion(client, host)
     -- Some custom servers use a protocol that differs from the client version.
     -- Keep client-version authoritative for DAT/assets/features and allow the
     -- wire protocol to be overridden independently in config.otml.
@@ -125,6 +125,13 @@ function g_game.getClientProtocolVersion(client)
     if protocolOverride > 0 then
         g_logger.info(string.format('[protocol] client=%d override=%d', client, protocolOverride))
         return protocolOverride
+    end
+
+    -- PKA keeps 860 assets but its world handshake uses protocol 854.
+    -- A new desktop profile has no Android-specific config override.
+    local protocolHost = (host or ''):lower():gsub('^https?://', ''):match('^([^/:]+)') or ''
+    if client == 860 and (protocolHost == 'pokealliance.com' or protocolHost:ends('.pokealliance.com')) then
+        return 854
     end
 
     local clients = {
