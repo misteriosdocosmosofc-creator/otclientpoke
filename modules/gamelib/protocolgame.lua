@@ -7,8 +7,8 @@ local maxPacketSize = 65000
 function ProtocolGame:getLoginExtendedData()
     if g_game.getRsa() == POKEALLIANCE_RSA and
        g_game.getClientVersion() == 860 and g_game.getProtocolVersion() == 854 then
-        -- Version marker decoded from the original client updated 2026-10-23.
-        return 'PokeAlliance-8BJgUpZjpb4hLW'
+        -- Version marker observed in the original client updated 2026-11-04.
+        return 'PokeAlliance-NJr8uTk5N7c2Qx'
     end
     return ''
 end

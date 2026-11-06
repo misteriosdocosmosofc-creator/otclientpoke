@@ -34,6 +34,11 @@ Fresh profiles select wire protocol 854 for PokeAlliance hosts with 860 assets.
 Other hosts keep their normal protocol mapping; an explicit `client-protocol`
 setting still takes precedence. The PKA selection enables its OS 20, U16 opcodes
 and HTTPS world-ticket login path without depending on an old Android config.
+The login extension also contains a release marker independent of DAT/SPR and
+the protocol number. It must match the current original client. The November 4
+GL build (SHA256 `52727d9c4a77d198aed177a73a61ee0be1caa5fc43ee6e083dc43347fee0b3f5`)
+was observed serializing `PokeAlliance-NJr8uTk5N7c2Qx` during a user-driven login.
+Updating graphics alone does not update this marker in `modules/gamelib/protocolgame.lua`.
 
 Pokemon windows are enabled for the PKA profile on desktop, with mouse-driven
 selection/skills and an order button in the Commands window. Desktop NPC greeting
