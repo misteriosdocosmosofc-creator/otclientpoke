@@ -35,9 +35,9 @@ Other hosts keep their normal protocol mapping; an explicit `client-protocol`
 setting still takes precedence. The PKA selection enables its OS 20, U16 opcodes
 and HTTPS world-ticket login path without depending on an old Android config.
 The login extension also contains a release marker independent of DAT/SPR and
-the protocol number. It must match the current original client. The November 4
-GL build (SHA256 `52727d9c4a77d198aed177a73a61ee0be1caa5fc43ee6e083dc43347fee0b3f5`)
-was observed serializing `PokeAlliance-NJr8uTk5N7c2Qx` during a user-driven login.
+the protocol number. It must match the current original client. The November 7
+GL build (SHA256 `fb1a59b6e8a3b147756a6a37f0e13267aa34f2166e3608af4443049a973f0c85`)
+was observed serializing `PokeAlliance-0fea9a8db26144` during a user-driven login.
 Updating graphics alone does not update this marker in `modules/gamelib/protocolgame.lua`.
 
 Pokemon windows are enabled for the PKA profile on desktop, with mouse-driven
